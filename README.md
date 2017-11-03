@@ -1,4 +1,4 @@
-# XGPS160-SDK-iOS
+# XGPS-SDK-iOS
 
 ![](https://img.shields.io/badge/language-swift3-orange.svg?style=flat)
 ![](https://img.shields.io/badge/sdk-objectiveC-orange.svg?style=flat)
