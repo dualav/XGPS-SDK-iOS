@@ -9,8 +9,10 @@ This project provides the source code and example code that XGPS150/XGPS160 exch
 
 ## Usaga
 
-The name of core SDK is Puck. You can use the puck.m and puck.h file. 
-Please reference the sample code how to use the Puck. 
+The name of core SDK is Puck. You can use the puck.m and puck.h file.
+
+Please reference the sample code how to use the Puck.
+
 We will update it as a framework for more convenient SDK ASAP.
 
 ## Product
