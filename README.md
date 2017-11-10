@@ -7,7 +7,7 @@
 
 This project provides the source code and example code that XGPS150/XGPS160 exchanges data with iPhone device via Bluetooth connection.
 
-## Usaga
+## Usage
 
 The name of core SDK is Puck. You can use the puck.m and puck.h file.
 
