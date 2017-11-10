@@ -49,8 +49,6 @@
 #define kVolt415				644     // Battery level conversion constant.
 #define kVolt350				543     // Battery level conversion constant.
 #define kMaxNumberOfSatellites  16      // Max number of visible satellites
-#define kLatLonBitResolution       2.1457672e-5
-#define kTrackHeadingResolution         1.40625
 #define kSleepTimeBetweenCommandRetries 0.3
 #define kCalcAvgSNRUsingGPS             YES
 #define kCalcAvgSNRUsingGLONASS         NO
@@ -110,6 +108,7 @@ USHORT	cfgLogBlock;
 USHORT	cfgLogOffset;
 
 UINT	tLogListCommand;
+bool    isBackground;
 
 logentry_t      logRecords[185 * 510];      // 185 records per block, 510 blocks total
 unsigned long   logReadBulkCount;
@@ -2581,10 +2580,13 @@ char *todTimeOnly(USHORT tod)  // Returns time to the hundredth of a sec: HH:MM:
     //		- after applicationWillResignActive in response to the home button is tapped (once)
     
     // Close any open streams
-    [self closeSession];
+    isBackground = true;
+    @synchronized (self) {
+        [self closeSession];
+    }
     
     // stop watching for Accessory notifications
-    [self stopObservingNotifications];
+//    [self stopObservingNotifications];
 }
 
 - (void)puck_applicationWillEnterForeground
@@ -2597,12 +2599,19 @@ char *todTimeOnly(USHORT tod)  // Returns time to the hundredth of a sec: HH:MM:
     
     // Begin watching for Accessory notifications again. Do this first because the rest of the method may complete before
     // the accessory reconnects.
-    [self observeNotifications];
+    isBackground = false;
+    //    [[EAAccessoryManager sharedAccessoryManager] registerForLocalNotifications];
     
-    // Recheck to see if the XGPS150/XGPS160 disappeared while away
-    if (self.isConnected == NO)
-    {
-        if ([self isPuckAnAvailableAccessory]) [self openSession];
+    // Recheck to see if the puck disappeared while away
+    @synchronized (self) {
+        NSLog(@"puck_applicationWillEnterForeground %d", self.isConnected);
+        // Delay execution of my block for 10 seconds.
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+            if (!isBackground) {
+                if ([self isPuckAnAvailableAccessory] == YES)
+                    [self openSession];
+            }
+        });
     }
 }
 
@@ -2734,7 +2743,7 @@ char *todTimeOnly(USHORT tod)  // Returns time to the hundredth of a sec: HH:MM:
     self.isConnected = NO;
     [commandQueue removeAllObjects];
     
-    [self setupPuck:nil withProtocolString:nil];
+//    [self setupPuck:nil withProtocolString:nil];
 }
 
 // initialize the accessory with the protocolString
