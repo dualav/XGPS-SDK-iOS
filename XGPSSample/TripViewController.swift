@@ -17,24 +17,39 @@ class TripsCell : UITableViewCell {
     
 }
 
-class TripViewController: UITableViewController {
+struct LogData {
+    let sig: Int
+    let interval: Int
+    let startBlock: Int
+    let countEntry: Int
+    let countBlock: Int
+    let createDate: String
+    let createTime: String
+    let fileSize: Int
+    let defaultString: String
+    var localFilename: String
+}
+
+class TripViewController: UITableViewController, TripLogDelegate {
     @IBOutlet weak var spinner: UIActivityIndicatorView!
 //    @IBOutlet weak var topTitleBar: UINavigationItem!
     var topTitleBar: UINavigationItem?
     
-    private let appDelegate = AppDelegate.getDelegate()
-    var xGpsManager: XGPSManager?
+    let appDelegate = AppDelegate.getDelegate()
+    let xGpsManager = AppDelegate.getDelegate().xGpsManager
     
     let kNoXGPSMessageView = 100
-    private var selectedIndex: Int = 0
-    private var lastSelectedIndex: Int = 0
+    var selectedIndex: Int = 0
+    var selectedLogData: LogData? = nil
+    var lastSelectedIndex: Int = 0
+    var logItems:[LogData] = []
+    var timeoutTask: DispatchWorkItem? = nil
     
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
-        xGpsManager = appDelegate.xGpsManager
-        refreshControl = UIRefreshControl()
-        refreshControl?.addTarget(self, action: #selector(refreshInvoked(_:forState:)), for: .valueChanged)
+//        refreshControl = UIRefreshControl()
+//        refreshControl?.addTarget(self, action: #selector(refreshInvoked(_:forState:)), for: .valueChanged)
         selectedIndex = 0
         lastSelectedIndex = -1
 
@@ -50,14 +65,11 @@ class TripViewController: UITableViewController {
     }
 
     func stopStreaming() {
-        xGpsManager?.puck?.enterLogAccessMode()
+        xGpsManager.commandLogAccessMode()
     }
     
     func setTableTitleText() {
-        var num: Int = 0
-        if let count = xGpsManager?.puck?.logListEntries.count {
-            num = count
-        }
+        var num: Int = logItems.count
         print("\(#function). here. # of records = \(num).")
         if num == 0 {
             topTitleBar?.title = "No Trips in Memory"
@@ -75,19 +87,7 @@ class TripViewController: UITableViewController {
         setTableTitleText()
         tableView.reloadData()
     }
-    
-    @objc func refreshInvoked(_ sender: Any, forState: UIControlState) {
-        print("\(#function). clearing logListEntries array")
-        topTitleBar?.title = "%Reloading Recorded Trips..."
-        if let entry = xGpsManager?.puck?.logListEntries {
-            entry.removeAllObjects()
-            tableView.reloadData()
-            xGpsManager?.puck?.getListOfRecordedLogs()
-            refreshLogEntryTableView()
-            refreshControl?.endRefreshing()
-        }
-    }
-    
+
     // MARK: - View lifecycle methods
     
     override func viewWillAppear(_ animated: Bool) {
@@ -95,32 +95,132 @@ class TripViewController: UITableViewController {
         topTitleBar?.rightBarButtonItem = editButtonItem
         setTableTitleText()
         // register for notifications from the app delegate that the XGPS150/160 has connected to the iPod/iPad/iPhone
-        NotificationCenter.default.addObserver(self, selector: #selector(self.deviceConnected), name: NSNotification.Name(rawValue: "DeviceConnected"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(self.deviceConnected), name: NSNotification.Name(rawValue: "PuckConnected"), object: nil)
         // register for notifications from the app delegate that the XGPS150/160 has disconnected from the iPod/iPad/iPhone
-        NotificationCenter.default.addObserver(self, selector: #selector(self.deviceDisconnected), name: NSNotification.Name(rawValue: "DeviceDisconnected"), object: nil)
-        // register for notifications from the API that the device (XGPS160 only) is done reading the log list entries
-        NotificationCenter.default.addObserver(self, selector: #selector(self.refreshLogEntryTableView), name: NSNotification.Name(rawValue: "DoneReadingLogListEntries"), object: nil)
-        // Listen for notification from the app delegate that the app has resumed becuase the UI may need to
+        NotificationCenter.default.addObserver(self, selector: #selector(self.deviceDisconnected), name: NSNotification.Name(rawValue: "PuckDisconnected"), object: nil)
         // update itself if the device status changed while the iPod/iPad/iPhone was asleep.
         NotificationCenter.default.addObserver(self, selector: #selector(self.refreshUIAfterAwakening), name: NSNotification.Name(rawValue: "RefreshUIAfterAwakening"), object: nil)
-        if xGpsManager?.puck?.isConnected == false {
+        
+        if xGpsManager.isConnected() == false {
             displayDeviceNotAttachedMessage()
+        }
+        else {
+            xGpsManager.commandLogAccessMode()
         }
     }
     
     override func viewDidAppear(_ animated: Bool) {
-        // No need to enter log access mode if we're already in it, e.g. coming back from the detailed log view
-        if xGpsManager?.puck?.streamingMode == true {
-            xGpsManager?.puck?.enterLogAccessMode()
-            setTableTitleText()
-        }
+        getLogList()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
-        NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "DeviceConnected"), object: nil)
-        NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "DeviceDisconnected"), object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "PuckConnected"), object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "PuckDisconnected"), object: nil)
         NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "RefreshUIAfterAwakening"), object: nil)
-        NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "DoneReadingLogListEntries"), object: nil)
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "TripDetail" {
+            let nextController = segue.destination as! TripDetailViewController
+            if let indexPath = tableView.indexPathForSelectedRow {
+                let logData = logItems[indexPath.row]
+                nextController.loadFromXGPS(logData: logData)
+            }
+        }
+    }
+    
+    // MARK: getting log list command
+    func getLogList() {
+        logItems.removeAll()
+        if xGpsManager.isConnected() {
+            xGpsManager.commandGetLogList(delegate: self)
+            // 9초동안 로그리스트를 못받고 있을때 종료시킨다
+            timeoutTask = DispatchWorkItem {
+            }
+            
+            // execute task in 2 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 9, execute: timeoutTask!)
+        }
+
+    }
+    
+    func reload() {
+        print("reload()")
+        DispatchQueue.global(qos: .default).async(execute: {() -> Void in
+
+            DispatchQueue.main.async(execute: {() -> Void in
+//                self.currentAlert?.dismiss(animated: true, completion: {() -> Void in
+                    self.timeoutTask?.cancel()
+//                    self.currentAlert = nil
+//                    print("alert dismissed")
+//                })
+                if self.xGpsManager.isConnected() {
+                    // 스토리지 구하기     /////////////////////////////////////////////////////////////////////
+                    var countBlock: Float = 0
+                    var sumFileSize : CLongLong = -1
+                    for dic in self.xGpsManager.logListData() {
+                        if let block: String = ((dic as! NSDictionary).object(forKey: "countBlock") as? String) {
+                            countBlock += Float(block)!
+                            let sig : String = ((dic as! NSDictionary).object(forKey: "sig") as? String)!
+                            let interval : String = ((dic as! NSDictionary).object(forKey: "interval") as? String)!
+                            let startBlock : String = ((dic as! NSDictionary).object(forKey: "startBlock") as? String)!
+                            let countEntry : String = ((dic as! NSDictionary).object(forKey: "countEntry") as? String)!
+                            let startDate : String = ((dic as! NSDictionary).object(forKey: "startDate") as? String)!
+                            let startTod : String = ((dic as! NSDictionary).object(forKey: "startTod") as? String)!
+                            let titleText : String = ((dic as! NSDictionary).object(forKey: TITLETEXT) as? String)!
+                            let localDateTime : String = XGPSManager.UTCToLocal(date: titleText)
+                            let logData = LogData.init(sig: (Int(sig) ?? 0), interval: Int(interval)!,
+                                                       startBlock: Int(startBlock)!, countEntry: Int(countEntry)!,
+                                                       countBlock: Int(block)!, createDate: startDate, createTime: startTod, fileSize: 0,
+                                                       defaultString: XGPSManager.UTCToLocal(date: titleText), localFilename: "")
+                            self.logItems.append(logData)
+                        }
+                    }
+                    countBlock = (countBlock / 520) * 100
+                    if countBlock > 0 && countBlock < 1 {
+                        countBlock = 1
+                    }
+                }
+                self.refreshLogEntryTableView()
+                ////////////////////////////////////////////////////////////////////////////////////////
+            })
+        })
+    }
+    
+    func deleteFromXGPS(logData: LogData) {
+//        let startBlock = (logData.startBlock)
+//        let countBlock = (logData.countBlock)
+//        print("start block: \(startBlock) -- block number: \(countBlock)")
+//
+//        if startBlock < 0 || startBlock >= 520 {
+//            return
+//        }
+//        if countBlock < 0 || countBlock > 520 {
+//            return
+//        }
+//        let buff = UnsafeMutablePointer<UInt8>.allocate(capacity: 4)
+//        buff.initialize(from: [UInt8(startBlock >> 8), UInt8(startBlock), UInt8(countBlock >> 8), UInt8(countBlock)])
+        xGpsManager.commandLogDelete(logData: logData)
+        self.logItems.removeAll()
+        getLogList()
+    }
+    
+    // MARK: TripLogDelegate
+    func logListComplete() {
+        xGpsManager.commandGetFreeSpace()
+        print("\(#function). clearing logListEntries array")
+        topTitleBar?.title = "%Reloading Recorded Trips..."
+        reload()
+    }
+    
+    func getUsedSpace(_ usedSize:Float) {
+        print("getFreeSpace : \(usedSize)")
+    }
+    
+    func logBulkProgress(_ progress: UInt) {
+    }
+    
+    func logBulkComplete(_ data: NSData) {
     }
     
     // MARK: - Table view data source
@@ -129,47 +229,55 @@ class TripViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        var count: Int = 0
-        
-        if let entry = self.xGpsManager?.puck?.logListEntries {
-            count = entry.count
-        }
-        if count == 0 {
-            spinner.startAnimating()
-        }
-        else {
-            spinner.stopAnimating()
-        }
-        return count
+        return logItems.count
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let CellIdentifier = "LogListEntryCell"
-        let cell = tableView.dequeueReusableCell(withIdentifier: CellIdentifier, for: indexPath) as? TripsCell
-        if let logListEntry = xGpsManager?.puck?.logListEntries[indexPath.row] {
-            let dict = logListEntry as? NSDictionary
-            let date = dict!["humanFriendlyStartDate"] as? String
-            let time = dict!["humanFriendlyStartTime"] as? String
-            let duration = dict!["humanFriendlyDuration"] as? String
-            let samples = dict!["countEntry"] as? Int
-            
-            cell?.logListIndexLabel.text = "#\(Int(indexPath.row) + 1)"
-            cell?.dateAndTimeLabel.text = String(format:"%@ %@", date!, time!)
-            cell?.durationLabel.text = duration
-            cell?.numberOfGPSSamplesLabel.text = String(describing: samples!) // "\(samples))"
+        var cell = tableView.dequeueReusableCell(withIdentifier: CellIdentifier, for: indexPath) as! TripsCell
+
+//        let cell = UITableViewCell(style: .default, reuseIdentifier: "LogListEntryCell") as! TripsCell
+        if logItems.count <= indexPath.row {
+            return cell
         }
-        return cell as? UITableViewCell ?? UITableViewCell()
+        
+        let key = logItems[indexPath.row]
+
+        cell.logListIndexLabel.text = "#\(Int(indexPath.row) + 1)"
+        cell.dateAndTimeLabel.text = String(format:"%@ %@", key.createDate, key.createTime)
+        cell.durationLabel.text = ""
+        cell.numberOfGPSSamplesLabel.text = "\(key.countEntry)"
+//        cell.textLabel?.text = key.defaultString
+        
+        return cell
+
+//
+//
+//        if let logListEntry = logItems[indexPath.row] {
+//            let dict = logListEntry as? NSDictionary
+//            let date = dict!["humanFriendlyStartDate"] as? String
+//            let time = dict!["humanFriendlyStartTime"] as? String
+//            let duration = dict!["humanFriendlyDuration"] as? String
+//            let samples = dict!["countEntry"] as? Int
+//
+//            cell?.logListIndexLabel.text = "#\(Int(indexPath.row) + 1)"
+//            cell?.dateAndTimeLabel.text = String(format:"%@ %@", date!, time!)
+//            cell?.durationLabel.text = duration
+//            cell?.numberOfGPSSamplesLabel.text = String(describing: samples!) // "\(samples))"
+//        }
+//        return cell as? UITableViewCell ?? UITableViewCell()
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        selectedIndex = indexPath.row
-        if selectedIndex == lastSelectedIndex {
-            return
-        }
-        let logListEntry = xGpsManager?.puck?.logListEntries[selectedIndex]
-        //NSLog(@"%s. loglistEntry = %@", __FUNCTION__, logListEntry);
-        lastSelectedIndex = selectedIndex
-        xGpsManager?.puck?.getGPSSampleData(forLogListItem: logListEntry as! [AnyHashable : Any])
+//        selectedIndex = indexPath.row
+//        let logListEntry = logItems[selectedIndex]
+//        selectedLogData = logListEntry
+////        if selectedIndex == lastSelectedIndex {
+////            return
+////        }
+//        //NSLog(@"%s. loglistEntry = %@", __FUNCTION__, logListEntry);
+//        lastSelectedIndex = selectedIndex
+//        self.performSegue(withIdentifier: "TripDetail", sender: self)
     }
     
     override func setEditing(_ editing: Bool, animated: Bool) {
@@ -187,8 +295,8 @@ class TripViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            let logListEntry = xGpsManager?.puck?.logListEntries[indexPath.row]
-            xGpsManager?.puck?.deleteGPSSampleData(forLogListItem: logListEntry as! [AnyHashable : Any])
+            let logData = logItems[indexPath.row]
+            deleteFromXGPS(logData: logData)
             self.tableView.beginUpdates()
             self.tableView.deleteRows(at: [indexPath], with: .fade)
             self.tableView.endUpdates()
@@ -217,7 +325,7 @@ class TripViewController: UITableViewController {
     }
     
     @objc func refreshUIAfterAwakening() {
-        if xGpsManager?.puck?.isConnected == false {
+        if xGpsManager.isConnected() == false {
             displayDeviceNotAttachedMessage()
         }
         else {

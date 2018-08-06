@@ -8,6 +8,59 @@
 
 import UIKit
 
+class LogBulkData:NSObject, NSCoding {
+    let date: String
+    let latitude: Float
+    let longitude: Float
+    let altitude: Float
+    let speed: Int64
+    let heading: Int
+    let tod: Int
+    let utc: String
+    let todString: String
+    
+    init(date: String, latitude: Float, longitude: Float,
+         altitude: Float, speed: Int64, heading: Int,
+         tod: Int, utc: String, todString: String) {
+        self.date = date
+        self.latitude = latitude
+        self.longitude = longitude
+        self.altitude = altitude
+        self.speed = speed
+        self.heading = heading
+        self.tod = tod
+        self.utc = utc
+        self.todString = todString
+    }
+    
+    required convenience init(coder aDecoder: NSCoder) {
+        let date = aDecoder.decodeObject(forKey: "date") as! String
+        let latitude = aDecoder.decodeFloat(forKey: "latitude")
+        let longitude = aDecoder.decodeFloat(forKey: "longitude")
+        let altitude = aDecoder.decodeFloat(forKey: "altitude")
+        let speed = aDecoder.decodeInt64(forKey: "speed")
+        let heading = aDecoder.decodeInteger(forKey: "heading")
+        let tod = aDecoder.decodeInteger(forKey: "tod")
+        let utc = aDecoder.decodeObject(forKey: "utc") as! String
+        let todString = aDecoder.decodeObject(forKey: "todString") as! String
+        self.init(date: date, latitude: latitude, longitude: longitude,
+                  altitude: altitude, speed: speed, heading: heading,
+                  tod: tod, utc: utc, todString: todString)
+    }
+    
+    func encode(with aCoder: NSCoder) {
+        aCoder.encode(date, forKey: "date")
+        aCoder.encode(latitude, forKey: "latitude")
+        aCoder.encode(longitude, forKey: "longitude")
+        aCoder.encode(altitude, forKey: "altitude")
+        aCoder.encode(speed, forKey: "speed")
+        aCoder.encode(heading, forKey: "heading")
+        aCoder.encode(tod, forKey: "tod")
+        aCoder.encode(utc, forKey: "utc")
+        aCoder.encode(todString, forKey: "todString")
+    }
+}
+
 class TripDetailCell : UITableViewCell {
     @IBOutlet weak var sampleIndexLabel: UILabel!
     @IBOutlet weak var latitudeLabel: UILabel!
@@ -17,10 +70,11 @@ class TripDetailCell : UITableViewCell {
     @IBOutlet weak var timestampLabel: UILabel!
 }
 
-class TripDetailViewController : UITableViewController, ProgressDialogViewControllerDelegate {
+class TripDetailViewController : UITableViewController, ProgressDialogViewControllerDelegate, TripLogDelegate {
     private let appDelegate = AppDelegate.getDelegate()
-    var xGpsManager: XGPSManager?
+    var xGpsManager = AppDelegate.getDelegate().xGpsManager
     var waitingView: WaitingToConnectView!
+    var logBulkDataList:[LogBulkData] = []
     
     @IBOutlet weak var spinner: UIActivityIndicatorView!
     let kNoXGPSMessageView = 100
@@ -44,7 +98,7 @@ class TripDetailViewController : UITableViewController, ProgressDialogViewContro
     }
     
     @objc func refreshUIAfterAwakening() {
-        if xGpsManager?.puck?.isConnected == false {
+        if xGpsManager.isConnected() == false {
             displayDeviceNotAttachedMessage()
         }
         else {
@@ -56,17 +110,14 @@ class TripDetailViewController : UITableViewController, ProgressDialogViewContro
     
     override func viewWillAppear(_ animated: Bool) {
         // It will take a moment or two for the XGPS150/160 to send the sample data to the app, particularly
-        // when the log file is large. So look for a notification from the API that the sample data has
-        // all been download into app memory.
-        NotificationCenter.default.addObserver(self, selector: #selector(self.refreshGPSDataTableView), name: NSNotification.Name(rawValue: "DoneReadingGPSSampleData"), object: nil)
         // register for notifications from the app delegate that the XGPS150/160 has connected to the iPod/iPad/iPhone
-        NotificationCenter.default.addObserver(self, selector: #selector(self.deviceConnected), name: NSNotification.Name(rawValue: "DeviceConnected"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(self.deviceConnected), name: NSNotification.Name(rawValue: "PuckConnected"), object: nil)
         // register for notifications from the app delegate that the XGPS150/160 has disconnected from the iPod/iPad/iPhone
-        NotificationCenter.default.addObserver(self, selector: #selector(self.deviceDisconnected), name: NSNotification.Name(rawValue: "DeviceDisconnected"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(self.deviceDisconnected), name: NSNotification.Name(rawValue: "PuckDisconnected"), object: nil)
         // Listen for notification from the app delegate that the app has resumed becuase the UI may need to
         // update itself if the device status changed while the iPod/iPad/iPhone was asleep.
         NotificationCenter.default.addObserver(self, selector: #selector(self.refreshUIAfterAwakening), name: NSNotification.Name(rawValue: "RefreshUIAfterAwakening"), object: nil)
-        if xGpsManager?.puck?.isConnected == false {
+        if xGpsManager.isConnected() == false {
             displayDeviceNotAttachedMessage()
         }
     }
@@ -81,16 +132,12 @@ class TripDetailViewController : UITableViewController, ProgressDialogViewContro
     
     override func viewDidAppear(_ animated: Bool) {
         // No need to enter log access mode if we're already in it, e.g. coming back from the detailed log view
-        if xGpsManager?.puck?.streamingMode == true {
-            xGpsManager?.puck?.enterLogAccessMode()
-        }
     }
     
     override func viewWillDisappear(_ animated: Bool) {
-        NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "DeviceConnected"), object: nil)
-        NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "DeviceDisconnected"), object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "PuckConnected"), object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "PuckDisconnected"), object: nil)
         NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "RefreshUIAfterAwakening"), object: nil)
-        NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "DoneReadingGPSSampleData"), object: nil)
     }
 
     override func didReceiveMemoryWarning() {
@@ -102,6 +149,7 @@ class TripDetailViewController : UITableViewController, ProgressDialogViewContro
         if (segue.identifier == "ExportSegue") {
             let progressDialog = segue.destination as? ProgressDialogViewController
             progressDialog?.delegate = self
+            progressDialog?.logBulkDataList = logBulkDataList
         }
     }
     
@@ -109,9 +157,48 @@ class TripDetailViewController : UITableViewController, ProgressDialogViewContro
         navigationController?.popViewController(animated: true)
     }
     
+    func loadFromXGPS(logData: LogData) {
+//        loadingEnable = true
+        logBulkDataList.removeAll()
+        print("setLogDataAndLoad : \(logData)")
+//        self.logData = logData
+        xGpsManager.commandGetLogBulk(logData: logData, delegate: self)
+    }
+    
+    // MARK: TripLogDelegate
+    func logListComplete() {
+    }
+    
+    func getUsedSpace(_ usedSize:Float) {
+    }
+    
+    @objc func logBulkProgress(_ progress: UInt) {
+    }
+    
+    @objc func logBulkComplete(_ data: NSData) {
+        logBulkDataList.removeAll()
+        for dic in xGpsManager.logBulkDic() {
+            let date : String = ((dic as! NSDictionary).object(forKey: "date") as? String)!
+            let lat : Float = ((dic as! NSDictionary).object(forKey: "lat") as? NSNumber)?.floatValue ?? 0
+            let long : Float = ((dic as! NSDictionary).object(forKey: "long") as? NSNumber)?.floatValue ?? 0
+            let alt : Float = ((dic as! NSDictionary).object(forKey: "alt") as? NSNumber)?.floatValue ?? 0
+            let utc : String = ((dic as! NSDictionary).object(forKey: "utc") as? String)!
+            let tod : Int = ((dic as! NSDictionary).object(forKey: "tod") as? NSNumber)?.intValue ?? 0
+            let spd : String = ((dic as! NSDictionary).object(forKey: "spd") as? String)!
+            let heading: Int = ((dic as! NSDictionary).object(forKey: "heading") as? NSNumber)?.intValue ?? 0
+            let titleText : String = ((dic as! NSDictionary).object(forKey: TITLETEXT) as? String)!
+            let logBulkData = LogBulkData(date: date, latitude: lat, longitude: long,
+                                          altitude: alt, speed: Int64(spd) ?? 0, heading: heading, 
+                                          tod: tod, utc: utc, todString: XGPSManager.UTCToLocal(date: titleText))
+            logBulkDataList.append(logBulkData)
+        }
+        tableView.reloadData()
+    }
+    
+    
     // MARK: - Table view data source
     @objc func refreshGPSDataTableView() {
-        tableView.reloadData()
+//        tableView.reloadData()
     }
     
     override func numberOfSections(in tableView: UITableView) -> Int {
@@ -119,31 +206,26 @@ class TripDetailViewController : UITableViewController, ProgressDialogViewContro
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        let count: Int? = xGpsManager?.puck?.logDataSamples.count
+        let count: Int = logBulkDataList.count
         if count == 0 {
             spinner.startAnimating()
         }
         else {
             spinner.stopAnimating()
         }
-        return count ?? 0
+        return count
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TripDetailCell", for: indexPath) as! TripDetailCell
-        if let sample = xGpsManager?.puck?.logDataSamples[indexPath.row] {
-            let dict = sample as? NSDictionary
-            let latitude = dict!["lat"] as! Float
-            let longigude = dict!["lon"] as! Float
-            let altitude = dict!["alt"] as! Float
-            let heading = dict!["heading"] as! Float
-            let speed = dict!["speed"] as! Int
-            
+        if logBulkDataList.count > indexPath.row {
+            let sample = logBulkDataList[indexPath.row]
             cell.sampleIndexLabel.text = "#\(Int(indexPath.row) + 1)"
-            cell.latitudeLabel.text = String(format: "%.4f˚", latitude)
-            cell.longitudeLabel.text = String(format: "%.4f˚", longigude)
-            cell.altitudeLabel.text = String(format: "%.0f feet", altitude)
-            cell.movementLabel.text = String(format: "%.0f˚ at %ld mph", heading, speed)
+            cell.latitudeLabel.text = String(format: "%.4f", sample.latitude)
+            cell.longitudeLabel.text = String(format: "%.4f˚", sample.longitude)
+            cell.altitudeLabel.text = String(format: "%.0f feet", sample.altitude)
+            cell.movementLabel.text = String(format: "%.0f˚ at %ld mph", sample.heading, sample.speed)
+            cell.timestampLabel.text = sample.utc
         }
         return cell as? UITableViewCell ?? UITableViewCell()
     }

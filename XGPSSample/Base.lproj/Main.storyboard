@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="13196" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="dfR-fK-9VT">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="14113" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="dfR-fK-9VT">
     <device id="retina4_7" orientation="portrait">
         <adaptation id="fullscreen"/>
     </device>
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="13173"/>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14088"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -176,7 +177,7 @@
                                 <rect key="frame" x="0.0" y="22" width="375" height="91"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" tableViewCell="4xF-Bh-u5O" id="MOb-e3-dF3">
-                                    <rect key="frame" x="0.0" y="0.0" width="342" height="90.5"/>
+                                    <rect key="frame" x="0.0" y="0.0" width="341" height="90.5"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                     <subviews>
                                         <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="12/22/2014 12:31 PM" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5j5-YH-00r">
@@ -236,7 +237,7 @@
                                     <outlet property="durationLabel" destination="bhC-d0-YTI" id="S1u-Jg-jE2"/>
                                     <outlet property="logListIndexLabel" destination="X7R-o8-DKZ" id="ruz-kj-O2U"/>
                                     <outlet property="numberOfGPSSamplesLabel" destination="NFI-EY-GSQ" id="7q5-Ep-pdQ"/>
-                                    <segue destination="ymq-3w-YCB" kind="show" id="WMh-sD-qsA"/>
+                                    <segue destination="ymq-3w-YCB" kind="show" identifier="TripDetail" id="Nou-K0-Q3N"/>
                                 </connections>
                             </tableViewCell>
                         </prototypes>

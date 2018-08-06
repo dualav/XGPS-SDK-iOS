@@ -15,20 +15,17 @@ protocol ProgressDialogViewControllerDelegate: NSObjectProtocol {
 }
 
 class ProgressDialogViewController: UIViewController, UIDocumentInteractionControllerDelegate, UIAlertViewDelegate {
-    var d: AppDelegate?
     var docController: UIDocumentInteractionController!
     var fp: FILE?
     var gpxString = ""
     var fileNameWithPath:URL!
     var fileName = ""
     var delegate: ProgressDialogViewControllerDelegate?
+    var logBulkDataList:[LogBulkData] = []
     @IBOutlet weak var exportProgress: UIProgressView!
     @IBOutlet weak var shareButton: UIButton!
     @IBOutlet weak var exportLabel: UILabel!
     @IBOutlet weak var cancelDoneButton: UIButton!
-    
-    private let appDelegate = AppDelegate.getDelegate()
-    var xGpsManager: XGPSManager?
     
     // MARK: - View lifecycle
     override func viewWillAppear(_ animated: Bool) {
@@ -39,7 +36,6 @@ class ProgressDialogViewController: UIViewController, UIDocumentInteractionContr
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        xGpsManager = appDelegate.xGpsManager
         docController = UIDocumentInteractionController()
         gpxString = "" /* String.reserveCapacity(d.xgps160.arr_logDataSamples.count()) */
     }
@@ -79,28 +75,20 @@ class ProgressDialogViewController: UIViewController, UIDocumentInteractionContr
     
     func createGPXString() {
         var trackPoint: String
-        let sizeOfTrack: Int = (xGpsManager?.puck?.logDataSamples.count)!
+        let sizeOfTrack: Int = logBulkDataList.count
         var index: Int = 0
         // create the GPX string header
         gpxString = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
         gpxString += "<gpx version=\"1.0\">\n"
         gpxString += "  <trk><name>\(fileName)</name><trkseg>\n"
         // add the trackpoint data
-        guard let logDataArray = xGpsManager?.puck?.logDataSamples else {
-            gpxString += ".....error......"
-            return
-        }
-        for sample in logDataArray {
-            let dict = sample as! NSDictionary
-            guard let latitude = dict["lat"] as? Float, let longitude = dict["lon"] as? Float else {
-                break
-            }
-            trackPoint = "    <trkpt lat=\"%.6f\" lon=\"%.6f\"><ele>\(latitude)</ele><time>\(longitude)</time></trkpt>\n"
+        for data in logBulkDataList {
+            trackPoint = "    <trkpt lat=\"%.6f\" lon=\"%.6f\"><ele>\(data.latitude)</ele><time>\(data.longitude)</time></trkpt>\n"
             gpxString += "\(trackPoint)"
             trackPoint = ""
             // update progress bar
-            exportProgress.progress = Float(index) / Float(sizeOfTrack)
             index += 1
+            exportProgress.progress = Float(index) / Float(sizeOfTrack)
         }
         // properly terminate GPX file
         gpxString += "  </trkseg></trk>\n"

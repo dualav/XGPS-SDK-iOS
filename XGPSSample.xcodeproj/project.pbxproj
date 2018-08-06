@@ -23,6 +23,12 @@
 		A74C76561FA31D0700EE6E58 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A74C76551FA31D0700EE6E58 /* Images.xcassets */; };
 		A783731E1FA94B1F0029BA1C /* WaitingToConnectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A783731D1FA94B1F0029BA1C /* WaitingToConnectView.swift */; };
 		A79E3DD71FA6BB760041CB5C /* Puck.m in Sources */ = {isa = PBXBuildFile; fileRef = A79E3DD61FA6BB760041CB5C /* Puck.m */; };
+		A7BE86752117ED4900C00BD2 /* Puck+XGPS500.m in Sources */ = {isa = PBXBuildFile; fileRef = A7BE86722117ED4800C00BD2 /* Puck+XGPS500.m */; };
+		A7BE86762117ED4900C00BD2 /* Puck+XGPS160.m in Sources */ = {isa = PBXBuildFile; fileRef = A7BE86732117ED4900C00BD2 /* Puck+XGPS160.m */; };
+		A7BE86792117ED7000C00BD2 /* CommonUtil.m in Sources */ = {isa = PBXBuildFile; fileRef = A7BE86772117ED6F00C00BD2 /* CommonUtil.m */; };
+		A7BE867C2117ED8400C00BD2 /* CommonValue.m in Sources */ = {isa = PBXBuildFile; fileRef = A7BE867B2117ED8400C00BD2 /* CommonValue.m */; };
+		A7BE86852117EE1200C00BD2 /* serial.c in Sources */ = {isa = PBXBuildFile; fileRef = A7BE86822117EE1100C00BD2 /* serial.c */; };
+		A7BE86862117EE1200C00BD2 /* ntripclient.c in Sources */ = {isa = PBXBuildFile; fileRef = A7BE86842117EE1100C00BD2 /* ntripclient.c */; };
 		A7CE8B9A1FA7223D0053B8AD /* Definitions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7CE8B991FA7223D0053B8AD /* Definitions.swift */; };
 /* End PBXBuildFile section */
 
@@ -48,6 +54,21 @@
 		A79E3DD41FA6BB750041CB5C /* XGPSSample-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "XGPSSample-Bridging-Header.h"; sourceTree = "<group>"; };
 		A79E3DD51FA6BB760041CB5C /* Puck.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Puck.h; sourceTree = "<group>"; };
 		A79E3DD61FA6BB760041CB5C /* Puck.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Puck.m; sourceTree = "<group>"; };
+		A7BE86712117ED4800C00BD2 /* Puck+XGPS500.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "Puck+XGPS500.h"; sourceTree = "<group>"; };
+		A7BE86722117ED4800C00BD2 /* Puck+XGPS500.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "Puck+XGPS500.m"; sourceTree = "<group>"; };
+		A7BE86732117ED4900C00BD2 /* Puck+XGPS160.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "Puck+XGPS160.m"; sourceTree = "<group>"; };
+		A7BE86742117ED4900C00BD2 /* Puck+XGPS160.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "Puck+XGPS160.h"; sourceTree = "<group>"; };
+		A7BE86772117ED6F00C00BD2 /* CommonUtil.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CommonUtil.m; sourceTree = "<group>"; };
+		A7BE86782117ED7000C00BD2 /* CommonUtil.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CommonUtil.h; sourceTree = "<group>"; };
+		A7BE867A2117ED8400C00BD2 /* CommonValue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CommonValue.h; sourceTree = "<group>"; };
+		A7BE867B2117ED8400C00BD2 /* CommonValue.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CommonValue.m; sourceTree = "<group>"; };
+		A7BE867D2117ED9F00C00BD2 /* TripLog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TripLog.h; sourceTree = "<group>"; };
+		A7BE867E2117EDB800C00BD2 /* xgps500def.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xgps500def.h; sourceTree = "<group>"; };
+		A7BE867F2117EDB800C00BD2 /* xgps160def.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xgps160def.h; sourceTree = "<group>"; };
+		A7BE86802117EDC700C00BD2 /* xgpscommand.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xgpscommand.h; sourceTree = "<group>"; };
+		A7BE86822117EE1100C00BD2 /* serial.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = serial.c; sourceTree = "<group>"; };
+		A7BE86832117EE1100C00BD2 /* ntripclient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ntripclient.h; sourceTree = "<group>"; };
+		A7BE86842117EE1100C00BD2 /* ntripclient.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ntripclient.c; sourceTree = "<group>"; };
 		A7CE8B991FA7223D0053B8AD /* Definitions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Definitions.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -104,6 +125,19 @@
 		A74C764F1FA311ED00EE6E58 /* XGPSSDK */ = {
 			isa = PBXGroup;
 			children = (
+				A7BE86812117EE1100C00BD2 /* NTrip */,
+				A7BE86802117EDC700C00BD2 /* xgpscommand.h */,
+				A7BE867F2117EDB800C00BD2 /* xgps160def.h */,
+				A7BE867E2117EDB800C00BD2 /* xgps500def.h */,
+				A7BE867D2117ED9F00C00BD2 /* TripLog.h */,
+				A7BE867A2117ED8400C00BD2 /* CommonValue.h */,
+				A7BE867B2117ED8400C00BD2 /* CommonValue.m */,
+				A7BE86782117ED7000C00BD2 /* CommonUtil.h */,
+				A7BE86772117ED6F00C00BD2 /* CommonUtil.m */,
+				A7BE86742117ED4900C00BD2 /* Puck+XGPS160.h */,
+				A7BE86732117ED4900C00BD2 /* Puck+XGPS160.m */,
+				A7BE86712117ED4800C00BD2 /* Puck+XGPS500.h */,
+				A7BE86722117ED4800C00BD2 /* Puck+XGPS500.m */,
 				A77A128C1FA85BBE0047AAC5 /* Common.h */,
 				A7CE8B991FA7223D0053B8AD /* Definitions.swift */,
 				A79E3DD51FA6BB760041CB5C /* Puck.h */,
@@ -112,6 +146,16 @@
 				A79E3DD41FA6BB750041CB5C /* XGPSSample-Bridging-Header.h */,
 			);
 			path = XGPSSDK;
+			sourceTree = "<group>";
+		};
+		A7BE86812117EE1100C00BD2 /* NTrip */ = {
+			isa = PBXGroup;
+			children = (
+				A7BE86822117EE1100C00BD2 /* serial.c */,
+				A7BE86832117EE1100C00BD2 /* ntripclient.h */,
+				A7BE86842117EE1100C00BD2 /* ntripclient.c */,
+			);
+			path = NTrip;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -196,15 +240,21 @@
 			files = (
 				A783731E1FA94B1F0029BA1C /* WaitingToConnectView.swift in Sources */,
 				A7CE8B9A1FA7223D0053B8AD /* Definitions.swift in Sources */,
+				A7BE86862117EE1200C00BD2 /* ntripclient.c in Sources */,
 				A74C76511FA312BE00EE6E58 /* XGPSManager.swift in Sources */,
 				A74C763F1FA30D4A00EE6E58 /* TripViewController.swift in Sources */,
+				A7BE86762117ED4900C00BD2 /* Puck+XGPS160.m in Sources */,
 				A74C763B1FA30D4A00EE6E58 /* AppDelegate.swift in Sources */,
+				A7BE86852117EE1200C00BD2 /* serial.c in Sources */,
 				A79E3DD71FA6BB760041CB5C /* Puck.m in Sources */,
 				A7137C971FAA9C80003A0EF6 /* TripDetailViewController.swift in Sources */,
 				A73C86D01FAAF7D000887DDC /* SettingDetailViewController.swift in Sources */,
+				A7BE86752117ED4900C00BD2 /* Puck+XGPS500.m in Sources */,
+				A7BE86792117ED7000C00BD2 /* CommonUtil.m in Sources */,
 				A7137C991FAAC134003A0EF6 /* ProgressDialogViewController.swift in Sources */,
 				A74C76531FA312DC00EE6E58 /* SettingsViewController.swift in Sources */,
 				A74C763D1FA30D4A00EE6E58 /* GPSViewController.swift in Sources */,
+				A7BE867C2117ED8400C00BD2 /* CommonValue.m in Sources */,
 				A73C86D41FAB216B00887DDC /* Constants.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

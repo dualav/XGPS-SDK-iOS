@@ -11,7 +11,9 @@
 #define BASIC_FONT_SIZE 15
 #define DISTANCE 88
 
+#define LOGBULK_LISTNAME @"loglist.dat"
 #define LOGBULK_DIRECTORYNAME @"logBulk.dat"
+#define KEY_SERIAL @"serial_number"
 #define ERROR_DATA_SUCCESS  1
 #define ERROR_DATA_INVALID  0
 #define COMMON_KEEPDATAID   @"KeepDataId"
@@ -19,13 +21,37 @@
 #define ERROR_DATA_NOT_EXIST    3
 #define KEEPDATA_DIRECTORYNAME @"CardName"
 
+// for ntrip network
+#define KEY_NETWORK @"key_network"
+#define KEY_SERVER @"key_server"
+#define KEY_PORT @"key_port"
+#define KEY_USER @"key_user"
+#define KEY_PASSWORD @"key_password"
+#define KEY_MODE @"key_mode"
+#define KEY_AUTO_MOUNTPOINT @"key_auto_mountpoint"
+#define KEY_MOUNT_POINT @"key_mount_point"
+
+#define KEY_DEVIATION @"key_deviation"
+
 #define TITLETEXT @"titleText"
+#define FILE_FORMAT @"file_format"
+#define FILE_SIZE @"file_size"
+#define FILE_TIME @"file_time"
 #define LOGNAME @"LOGNAME"
 
 #define LOG_LIST_LOADING 1
 #define LOG_BULK_LOADING 2
 #define LOG_DELETE 3
 #define LOG_LIST_LOADING_FROM_APPFILE 4
+
+#define XGPS_160 @"XGPS160"
+#define XGPS_150 @"XGPS150"
+#define XGPS_500 @"XGPS500"
+
+#define ABOUT_XGPS_160 @"If you own an XGPS160 Universal Bluetooth GPS Receiver from Dual Electronics, this app will tell you status information about your device, including whether it has determined your location or if it is still searching for satellite signals."
+#define ABOUT_XGPS_150 @"If you own an XGPS150 Universal Bluetooth GPS Receiver from Dual Electronics, this app will tell you status information about your device, including whether it has determined your location or if it is still searching for satellite signals."
+#define ABOUT_XGPS_500 @"If you own an XGPS500 Precision Bluetooth GPS Receiver from Dual Electronics, this app will tell you status information about your device, including whether it has determined your location or if it is still searching for satellite signals."
+
 
 
 /*
@@ -56,4 +82,16 @@ x = nil; \
 #define GetVersionManager(x)            [VersionManager sharedInstance:x]
 #define GetMainViewController(x)        [MainViewController sharedInstance:x]
 #define GetImageDownloader              [ImageDownloader getInstance]
+
+
+
+
+
+enum {
+    SCALE_NONE = 0,
+    SCALE_AUTO = 1,
+    SCALE_MAX
+};
+
+
 

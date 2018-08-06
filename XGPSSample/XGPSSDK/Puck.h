@@ -1,13 +1,12 @@
 //
 //  Puck.h
-//  XGPS150/XGPS160 Developers Kit.
+//  XGPS150 Developers Kit.
 //
-//  Version 2.2
+//  Version 1.5.
 //  Licensed under the terms of the BSD License, as specified below.
-//  last modify by hjlee on 2017. 10. 30
 
 /*
- Copyright (c) 2017 Dual Electronics Corp.
+ Copyright (c) 2013 Dual Electronics Corp.
  All rights reserved.
  
  Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -18,233 +17,198 @@
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+
+#ifdef __OBJC__
+#import <UIKit/UIKit.h>
+#import <Foundation/Foundation.h>
+#endif
+#import <CoreLocation/CoreLocation.h>       // only used for the CLLocationCoordinate2D data structure. Location manager is not used.
 #import <ExternalAccessory/ExternalAccessory.h>
 
-@interface Puck : NSObject <EAAccessoryDelegate, NSStreamDelegate>
+#import "Common.h"
+#import "CommonUtil.h"
+#import "CommonValue.h"
 
-// This is information about the XGPS150/XGPS160 hardware
-@property bool   isConnected;                           // YES when there is an established connection between the iOS device and the XGPS150/XGPS160
-@property bool   isCharging;                            // YES when XGPS150/XGPS160 is connected to power
-@property float  batteryVoltage;                        // Value between 0.0 (0%) and 1.0 (100%) representing the level of the XGPS150/XGPS160's battery
-@property (nonatomic, strong) NSString *firmwareRev;    // Firmware version installed in the XGPS150/XGPS160, e.g. 1.3.0
-@property (nonatomic, strong) NSString *serialNumber;   // Unique ID of the XGPS150/XGPS160, e.g. XGPS150-28645E
-@property bool   streamingMode;                         // YES if streaming GPS data, NO if not (i.e. in log access mode)
-@property bool   deviceSettingsHaveBeenRead;            // The settable options values below will not be valid until this boolean is true.
+#import "TripLog.h"
 
-// These are the settable options for the XGPS160
-@property bool   alwaysRecordWhenDeviceIsOn;            // YES means the device will record position information whenever it is on. NO means logging must be enabled manually.
-@property bool   stopRecordingWhenMemoryFull;           // YES means the recording stops when the internal memory fills up. NO means old data is overwritten.
-@property unsigned char logUpdateRate;                  // Position sampling rate for logging. See comments in 'setLoggingUpdateRate' method for explanation of values.
+#import "xgps160def.h"
+#import "xgps500def.h"
+#import "xgpscommand.h"
 
-// This is the raw GPS data available from the XGPS150/XGPS160
-@property (nonatomic, strong) NSNumber	*lat;           // Latitude. 6 decimals of precision: nn.nnnnnn
-@property (nonatomic, strong) NSNumber	*lon;           // Longitude. 6 decimals of precision: nn.nnnnnn
-@property (nonatomic, strong) NSNumber	*alt;           // Altitude in meters
-@property (nonatomic, strong) NSString	*utc;           // UTC time of latest position sample
-@property (nonatomic, strong) NSNumber	*fixType;       // 1 = position fix not available, 2 = 2D fix, 3 = 3D fix
-@property (nonatomic, strong) NSNumber	*numOfSatInUse;   // Number of satellites in use (not the number in view)
-@property (nonatomic, strong) NSNumber	*numOfSatInView;  // The total number of satellites in view
-@property (nonatomic, strong) NSNumber	*numOfGLONASSSatInUse;              // Number of satellites in use (not the number in view), integer.
-@property (nonatomic, strong) NSNumber	*numOfGLONASSSatInView;             // The total number of satellites in view, integer.
-@property (nonatomic, strong) NSNumber	*hdop;          // Horizontal dilution of position, float. More info in Puck.m.
-@property (nonatomic, strong) NSNumber	*vdop;          // Vertical dilution of position, float
-@property (nonatomic, strong) NSNumber	*pdop;          // Postional (3D) dilution of position, float
-@property (nonatomic, strong) NSNumber	*trackTrue;     // Track in degrees (true north), float
-@property (nonatomic, assign) NSNumber  *trackMag;
-@property (nonatomic, strong) NSNumber	*speedKnots;    // Speed in knots, float
-@property (nonatomic, strong) NSNumber	*speedKph;      // Speed in km/hr, float
-@property bool		speedAndCourseIsValid;              // Whether the speed and course data is valid or not
-@property bool      waasInUse;      // YES when at least one WAAS/EGNOS/MSAS satellite is being used in position calculations
+
+@class AppDelegate;
+
+@interface Puck : NSObject <EAAccessoryDelegate, NSStreamDelegate, TripLogDelegate>
+{
+    AppDelegate *delegate;
+    FILE*	fileLogExport;
+    
+    //++ XGPS160 only
+    unsigned long logReadBulkCount;
+    logentry_t      logRecords[185 * 510];
+    unsigned long logBulkRecodeCnt;
+    //--
+
+    
+    // These are for communicating with the puck
+    NSNotification      *_mostRecentNotification;
+    bool                notificationType;
+//    EAAccessory         *_accessory;
+    EASession           *_session;
+//    NSString            *_protocolString;
+
+    // This is the information available about the XGPS150 hardware
+    bool        isPaired;                   // Whether the puck is avaiable via Bluetooth
+	bool        isConnected;                // Whether there is an established connection between the iPxx and the puck
+	bool        isCharging;                 // Whether the puck is charging or not
+	float       batteryVoltage;             // Value between 0.0 (0%) and 1.0 (100%) representing the level of the puck's battery
+    NSMutableString	*serialNumber;              // Unique ID of the puck, e.g. XGPS150-28645E
+    NSString	*firmwareRev;               // Firmware version in the puck, e.g. 1.0.23
+    NSString *modelNumber;                      // model number
+    
+    // This is the raw GPS data available from the XGPS150
+//	NSNumber	*alt;                       // Altitude in meters
+	NSMutableString	*utc;                       // UTC time of latest position sample
+	int         fixType;                   // 1 = position fix not available, 2 = 2D fix, 3 = 3D fix
+	int         numOfSatInUse;             // Number of satellites in use (not the number in view)
+//	NSNumber	*numOfSatInView;            // The total number of satellites in view
+//	float	*hdop;                      // Horizontal dilution of position, float. More info in Puck.m.
+//	float	*vdop;                      // Vertical dilution of position, float
+//	float	*pdop;                      // Postional (3D) dilution of position, float
+//	NSNumber	*trackTrue;                 // Track in degrees (true north), float
+//	NSNumber	*trackMag;                  // Track in degrees (magnetic north), float. NOTE: the current chipset does not
+                                            // provide magnetic heading info. Until the chipset is updated, trackMag will
+                                            // always equal trackTrue.
+//	NSNumber	*speedKnots;                // Speed in knots, float
+//	NSNumber	*speedKph;                  // Speed in km/hr, float
+	bool		speedAndCourseIsValid;		// Whether the speed and course data is valid or not
+	NSMutableArray		*latDegMinDir;		// A 3 element array containing degrees, minutes and a "N" or "S" character.
+                                            // Degrees will be an integer (0-359) stored as an NSNumber. Minutes will always
+                                            // be a floating point value (mm.mmmm) stored as an NSNumber. The "N"/"S" character
+                                            // will be stored as an NSString.
+	NSMutableArray		*lonDegMinDir;		// A 3 element array containing degrees, minutes and a "E" or "W" character.
+                                            // Degrees will be an integer (0-359) stored as an NSNumber. Minutes will always
+                                            // be a floating point value (mm.mmmm) stored as an NSNumber. The "E"/"W" character
+                                            // will be stored as an NSString.
+	NSMutableArray		*satsUsedInPosCalc;	// An array containing the satellite numbers which the puck is reporting to be used
+                                            // in the position (and DOP) calculations. Array contains up to 12 NSNumbers which
+                                            // are integers.
+	NSMutableDictionary *dictOfSatInfo;		// A dictionary with arrays as the objects. Each array has four components:
+                                            // azimuth, elevation, signal strength, and a boolean value of whether the satellite
+                                            // is being used in position calculations - all NSNumber types. The keys to the dictionary
+                                            // are the satellite numbers - also NSNumber types. This dictionary is set by the
+                                            // parseGPS method.
+	CLLocationCoordinate2D	coordinates;	// The puck's location, calculated by a class method
+    
+}
+@property (nonatomic, retain) NSMutableArray* logBulkDic;
+@property (nonatomic, retain) NSMutableArray* logListData;
+
+@property bool notificationType;    // true = connect. false = disconnect
+//@property (nonatomic, readonly) EAAccessory *accessory;
+//@property (nonatomic, readonly) NSString *protocolString;
+@property bool isPaired;
+@property bool isConnected;
+@property bool isCharging;
+@property bool isDGPS;
+@property bool isRunningNtrip;
+@property float batteryVoltage;
+@property (nonatomic, retain) NSMutableString *serialNumber;
+@property (nonatomic, retain) NSString *firmwareRev;
+@property (nonatomic, retain) NSString *modelNumber;
+@property (nonatomic, retain) NSString *mountPoint;
+@property (nonatomic, retain) NSString *ntripErrorMessage;
+@property (nonatomic, retain) NSMutableArray *mountPointList;
+@property (nonatomic, assign) float latitude;
+@property (nonatomic, assign) float longitude;
+@property (nonatomic, assign) float alt;
+@property (nonatomic, retain) NSMutableString *utc;
+@property (nonatomic, assign) int fixType;
+@property (nonatomic, assign) int numOfSatInUse;
+@property (nonatomic, assign) int numOfSatInView;
+@property (nonatomic, assign) int numOfSatInUseGlonass;
+@property (nonatomic, assign) int numOfSatInViewGlonass;
+@property (nonatomic, assign) float hdop;
+@property (nonatomic, assign) float vdop;
+@property (nonatomic, assign) float pdop;
+@property (nonatomic, assign) float trackTrue;
+@property (nonatomic, assign) float trackMag;
+@property (nonatomic, assign) float speedKnots;
+@property (nonatomic, assign) float speedKph;
+@property bool speedAndCourseIsValid;
+@property bool waasInUse;
 @property (nonatomic, retain) NSMutableArray *latDegMinDir;
 @property (nonatomic, retain) NSMutableArray *lonDegMinDir;
-
-// An array containing the satellite numbers which the XGPS150 is reporting to be used
-// in the position (and DOP) calculations. Array contains up to 16 NSNumbers which
-// are integers.
-@property (nonatomic, strong) NSMutableArray *satsUsedInPosCalc;
+@property (nonatomic, retain) NSMutableArray *satsUsedInPosCalc;
 @property (nonatomic, retain) NSMutableArray *satsUsedInPosCalcGlonass;
-
-// A dictionary with arrays as the objects. Each array has four components:
-// azimuth, elevation, signal strength, and a boolean value of whether the satellite
-// is being used in position calculations - all NSNumber types. The keys to the dictionary
-// are the satellite numbers - also NSNumber types.
-@property (nonatomic, strong) NSMutableDictionary *dictOfSatInfo;
+@property (nonatomic, retain) NSMutableDictionary *dictOfSatInfo;
 @property (nonatomic, retain) NSMutableDictionary *dictOfSatInfoGlonass;
+@property (nonatomic, readwrite) CLLocationCoordinate2D coordinates;
+@property(nonatomic, assign) id <TripLogDelegate> tripLogDelegate;
 
-// An array containing the satellite numbers which the XGPS160 is reporting to be used
-// in the position (and DOP) calculations. Array contains up to 16 NSNumbers which
-// are integers.
-@property (nonatomic, strong) NSMutableArray *gpsSatsUsedInPosCalc;
+@property bool supportBinCommand;// XGPS160, XGPS190, XGPS500 and XGPS150 v3.0
+@property bool supportOldCommand;// XGPS150 FW below 1.1 do not support config change
 
-// A dictionary with arrays as the objects. Each array has four components:
-// azimuth, elevation, signal strength, and a boolean value of whether the satellite
-// is being used in position calculations - all NSNumber types. The keys to the dictionary
-// are the satellite numbers - also NSNumber types.
-@property (nonatomic, strong) NSMutableDictionary *dictOfGPSSatInfo;
+@property uint8_t   xgps500_streamMode;
+@property(nonatomic, assign) BOOL loggingEnabled;
+@property(nonatomic, assign) BOOL logOverWriteEnabled;
+@property(nonatomic, assign) BOOL useShortNMEA;
 
-// An array containing the satellite numbers which the XGPS160 is reporting to be used
-// in the position (and DOP) calculations. Array contains up to 16 NSNumbers which
-// are integers.
-@property (nonatomic, strong) NSMutableArray *glonassSatsUsedInPosCalc;
+@property(nonatomic, assign) int logType;
+@property(nonatomic, assign) int logInterval;
+@property(nonatomic, assign) int gpsRefreshRate;
 
-// A dictionary with arrays as the objects. Each array has four components:
-// azimuth, elevation, signal strength, and a boolean value of whether the satellite
-// is being used in position calculations - all NSNumber types. The keys to the dictionary
-// are the satellite numbers - also NSNumber types.
-@property NSMutableDictionary *dictOfGLONASSSatInfo;
+@property(nonatomic, assign) BOOL coldStartResult;
 
-// This is information about the recorded log data
-@property (strong, nonatomic) NSMutableArray *logDataSamples;
-@property (strong) NSMutableArray *logListEntries;
-
-// These methods are for reading and changing the device settings
-- (void)readDeviceSettings;
-- (void)setNewLogDataToOverwriteOldData:(bool)overwrite;
-- (void)setAlwaysRecord:(bool)record;
-
-// These methods are used for controlling and reading the logs in the XGPS160
-- (void)startLoggingNow;
-- (void)stopLoggingNow;
-- (void)enterLogAccessMode;
-- (void)exitLogAccessMode;
-- (bool)setLoggingUpdateRate:(unsigned char)rate;
-- (void)getListOfRecordedLogs;
-- (void)getGPSSampleDataForLogListItem:(NSDictionary *)logListItem;
-- (void)deleteGPSSampleDataForLogListItem:(NSDictionary *)logListItem;
-
-- (int) getUsedStoragePercent;
+@property(nonatomic, assign) BOOL isFWUpdateWorking;
 
 
-// Call these methods in the corresponding methods in your app delegate
 - (void)puck_applicationWillResignActive;
 - (void)puck_applicationDidEnterBackground;
 - (void)puck_applicationWillEnterForeground;
 - (void)puck_applicationDidBecomeActive;
 - (void)puck_applicationWillTerminate;
 
-// These two methods can be used to change the GPS sampling rate. NOTE: there are two different
-// GPS chipsets used in the XGPS150. One chipset has a maximum sampling rate of 4Hz and the other
-// will run at 5Hz. The setFastSampleRate method will automatically handle this difference. Normal
-// sample rate for both chipsets is 1Hz.
--(void)setFastSampleRate;
--(void)setNormalSampleRate;
+-(NSInteger) avgUsableSatSNR;
 
-typedef unsigned int UINT;
-typedef unsigned char BYTE;
-typedef unsigned short USHORT;
-typedef unsigned long DWORD;
+-(void) handleInputStream :(const char*)pLine :(int)len;
+-(void) handleBinaryPacket :(uint8_t*)Pkt :(uint8_t)PktLen;
+-(void) handleDeviceMessage :(uint8_t*)data :(uint8_t)dataLen;
+-(void) handleNMEASentence :(char*)Sentence :(uint8_t)SentenceLength;
 
-typedef struct {
-    
-    USHORT    date;    // date: ((year-2012)  12 + (month - 1))  31 + (day - 1)
-    //  year  = 2012 + (dd/372)
-    //  month = 1 + (dd % 372) / 31
-    //  day   = 1 + dd % 31
-    USHORT    tod;    // 16 LSB of time of day in second
-    BYTE    tod2;    // [0..3] 1/10 of second
-    // [4]    1 MSB of the time of day
-    // [5..7] reserved
-    
-    BYTE    lat[3];        // Latitude  - as 24bit integer, MSB byte first
-    BYTE    lon[3];        // Longitude - as 24bit integer, MSB byte first
-    BYTE    alt[3];        // Altitude, in 5 ft unit.
-    BYTE    spd[2];        // speed over ground
-    BYTE    heading;    // True north heading in 360/256 step
-    BYTE    satnum;        // in view, in use
-    BYTE    satsig;
-    BYTE    dop;        // HDOP, VDOP
-} dataentry_t;
+-(void) writeBufferToStream:(const uint8_t *)buf :(uint32_t) bufLen;
+-(bool) sendCommandToDevice:(int)cmd :(int)item :(uint8_t*) buf :(uint32_t) bufLen;
 
+-(bool) streamEnable;		// enable NMEA stream output
+-(bool) streamDisable;		// disable NMEA stream output
 
-typedef struct {
-    
-    USHORT    date;    // date: ((year-2012)  12 + (month - 1))  31 + (day - 1)
-    //  year  = 2012 + (dd/372)
-    //  month = 1 + (dd % 372) / 31
-    //  day   = 1 + dd % 31
-    USHORT    tod;    // 16 LSB of time of day in second
-    BYTE    tod2;    // [0..3] 1/10 of second
-    // [4]    1 MSB of the time of day
-    // [5..7] reserved
-    
-    BYTE    lat[4];        // Latitude  - as 32bit integer, MSB byte first
-    BYTE    lon[4];        // Longitude - as 32bit integer, MSB byte first
-    
-    BYTE    alt[3];        // Altitude, in CM unit
-    BYTE    spd[2];        // speed over ground, knots
-    BYTE    heading;    // True north heading in 360/256 step
-    BYTE    satsig;
-} data2entry_t;
+// Old(Compatibility Mode) commands (XGPS150 prior to v3.0)
+-(void) setRefreshRate:(int)value;
+-(void) getSettingValue;
+-(void) setShortNMEA:(bool)ShortNMEA;
 
+//
+// LOG Access
+//
+-(void) cancelLoading:(int)whatCancel;
 
+//
+// OTA Firmware Update
+//
+- (bool) fwupdateNeeded;
+- (bool) fwupdateStart:(NSMutableData*)firmwareData fileSize:(int)fwsize progress:(void (^)(float percent))progressBlock;
+- (bool) fwupdateCancel;
 
+//
+// RTCM Feed into XGPS500
+//
+//int ntripTest(char **buf, int *bufSize);
+int ntripTest(void *object, char *server, char *port, char *user, char *pw, char *mount, int mode);
+- (void)startNtripNetwork:(NSString *)mountPoint;
+- (void)stopNtripNetwork;
+- (void)addMountPoint:(NSString *)mountPoint;
+//- (void)setMountPoint:(NSString *)mountPoint;
+@property (nonatomic, retain) NSString *sentenceGGA;
+@property long ntripReceived;
 
-typedef struct {
-    USHORT	ttff;
-    BYTE	batt;
-    BYTE	gpsStat;
-    BYTE	devOp;
-    BYTE	chStat;
-    BYTE	bdCh;
-    BYTE	bdOp;
-    BYTE	bdAddr[6];
-} statentry_t;  // 9 bytes
-
-
-
-
-typedef struct {
-    BYTE    seq;    // sequence number of the record (wrap after 255)
-    BYTE    type;    // 0= dataentry_t, 2=dataentry2_t, others not defined yet.
-    
-    union {
-        dataentry_t        data;
-        data2entry_t    data2;
-    };
-    
-} logentry_t;
-
-
-typedef struct {
-    BYTE	sig;
-    BYTE	interval;
-    USHORT	startDate;
-    UINT	startTod;
-    USHORT	startBlock;
-    USHORT	countEntry;
-    USHORT	countBlock;
-} loglistitem_t;    // 14 bytes
-
-enum {
-    cmd160_ack,
-    cmd160_nack,
-    cmd160_response,
-    cmd160_fwRsp,
-    cmd160_fwData,
-    cmd160_fwDataR,
-    cmd160_fwErase,
-    cmd160_fwUpdate,
-    cmd160_fwBDADDR,
-    cmd160_fwCancel,
-    cmd160_streamStop,
-    cmd160_streamResume,
-    cmd160_logDisable,
-    cmd160_logEnable,
-    cmd160_logOneshot,
-    cmd160_logPause,
-    cmd160_logResume,
-    cmd160_logInterval,
-    cmd160_logOWEnable,
-    cmd160_logOWDisable,
-    cmd160_getSettings,
-    cmd160_logReadBulk,
-    cmd160_logList,
-    cmd160_logListItem,
-    cmd160_logRead,
-    cmd160_logDelBlock,
-    cmd160_resetSettings,
-    cmd160_fwVersion,
-    cmd160_recentList,
-    cmd160_recentDel,
-};
 @end

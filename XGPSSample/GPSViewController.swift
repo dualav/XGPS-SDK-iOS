@@ -28,7 +28,7 @@ class GPSViewController: UIViewController, UITableViewDelegate, UITableViewDataS
     let items160 = [[KEY_CONNECTION, KEY_BATTERY], [KEY_LATITUDE, KEY_LONGITUDE, KEY_ALTITUDE, KEY_HEADING, KEY_SPEED, KEY_UTC, KEY_WAAS], [KEY_VIEW, KEY_USE], [KEY_GLONASS_VIEW, KEY_GLONASS_USE]]
 
     let appDelegate = AppDelegate.getDelegate()
-    var xGpsManager: XGPSManager?
+    var xGpsManager = AppDelegate.getDelegate().xGpsManager
     
 //    @IBOutlet weak var titleItem: UINavigationItem!
     @IBOutlet weak var statusTableView: UITableView!
@@ -42,17 +42,17 @@ class GPSViewController: UIViewController, UITableViewDelegate, UITableViewDataS
         super.viewDidLoad()
         waitingView = WaitingToConnectView()
         self.view.addSubview(waitingView)
-        xGpsManager = appDelegate.xGpsManager
         statusTableView.delegate = self
         statusTableView.dataSource = self
         initializeObject()
     }
     
     override func viewWillAppear(_ animated: Bool) {
-        if let title = xGpsManager?.currentModel {
+        if let title = xGpsManager.currentModel {
             self.navigationController?.navigationBar.topItem?.title = title
         }
-        xGpsManager?.delegate = self
+        xGpsManager.delegate = self
+        xGpsManager.commandStreamEnable()
     }
     
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
@@ -68,7 +68,7 @@ class GPSViewController: UIViewController, UITableViewDelegate, UITableViewDataS
     
     //MARK: - custom functions
     func initializeObject() {
-        if let title = xGpsManager?.currentModel {
+        if let title = xGpsManager.currentModel {
             self.navigationController?.navigationBar.topItem?.title = title
             if title.contains(XGPSManager.XGPS150) {
                 items = items150

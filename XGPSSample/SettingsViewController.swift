@@ -26,7 +26,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     var items:[[String]] = [[]]
 
     let appDelegate = AppDelegate.getDelegate()
-    var xGpsManager: XGPSManager?
+    var xGpsManager = AppDelegate.getDelegate().xGpsManager
     var sectionCount: Int = 0
     
     @IBOutlet weak var settingsTableView: UITableView!
@@ -37,32 +37,33 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         waitingView = WaitingToConnectView()
         self.view.addSubview(waitingView)
         xGpsManager = appDelegate.xGpsManager
-        xGpsManager?.delegate = self
+        xGpsManager.delegate = self
         settingsTableView.delegate = self
         settingsTableView.dataSource = self
         initializeObject()
+        setAvailabilityOfUI()
     }
     
     override func viewWillAppear(_ animated: Bool) {
         self.navigationController?.navigationBar.topItem?.title = "Settings"
-        xGpsManager?.puck?.readDeviceSettings()
-        setAvailabilityOfUI()
+        xGpsManager.commandGetSettings()
         // register for notifications from the app delegate that the XGPS150/160 has connected to the iPod/iPad/iPhone
-        NotificationCenter.default.addObserver(self, selector: #selector(self.deviceConnected), name: NSNotification.Name(rawValue: "DeviceConnected"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(self.deviceConnected), name: NSNotification.Name(rawValue: "PuckConnected"), object: nil)
         // register for notifications from the app delegate that the XGPS150/160 has disconnected from the iPod/iPad/iPhone
-        NotificationCenter.default.addObserver(self, selector: #selector(self.deviceDisconnected), name: NSNotification.Name(rawValue: "DeviceDisconnected"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(self.setAvailabilityOfUI), name: NSNotification.Name(rawValue: "DeviceSettingsValueChanged"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(self.deviceDisconnected), name: NSNotification.Name(rawValue: "PuckDisconnected"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(self.refreshUIAfterAwakening), name: NSNotification.Name(rawValue: "RefreshUIAfterAwakening"), object: nil)
-        if xGpsManager?.puck?.isConnected == false {
+        NotificationCenter.default.addObserver(self, selector: #selector(self.setAvailabilityOfUI), name: NSNotification.Name(rawValue: "updateSettings"), object: nil)
+        
+        if xGpsManager.isConnected() == false {
             displayDeviceNotAttachedMessage()
         }
     }
     
     override func viewWillDisappear(_ animated: Bool) {
-        NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "DeviceConnected"), object: nil)
-        NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "DeviceDisconnected"), object: nil)
-        NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "DeviceSettingsValueChanged"), object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "PuckConnected"), object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "PuckDisconnected"), object: nil)
         NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "RefreshUIAfterAwakening"), object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "updateSettings"), object: nil)
     }
     
     override func didReceiveMemoryWarning() {
@@ -72,7 +73,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     
     //MARK: - custom functions
     func initializeObject() {
-        if let title = xGpsManager?.currentModel {
+        if let title = xGpsManager.currentModel {
             if title.contains(XGPSManager.XGPS150) {
                 items = items150
                 section = section150
@@ -233,7 +234,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             else if selected == 4 {
                 settingValue = 200
             }
-            xGpsManager?.puck?.setLoggingUpdateRate(UInt8(settingValue))
+            xGpsManager.commandLoggingUpdateRate(UInt8(settingValue))
         }
         else if key == SettingsViewController.KEY_UPDATE_RATE {
             UserDefaults.standard.set(Constants.updateRates[selected], forKey: "update_rate_preference")
@@ -247,11 +248,11 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         print("The switch is \(sender.isOn ? "ON" : "OFF")")
         if sender.tag == TAG_RECORD_TURN_ON {
             UserDefaults.standard.set(sender.isOn, forKey: "record_turn_on_preference")
-            xGpsManager?.puck?.setAlwaysRecord(sender.isOn)
+            xGpsManager.commandSetAlwaysRecord(isOn: sender.isOn)
         }
         else if sender.tag == TAG_OVERWRITE_OLD {
             UserDefaults.standard.set(sender.isOn, forKey: "record_overwrite_preference")
-            xGpsManager?.puck?.setNewLogDataToOverwriteOldData(sender.isOn)
+            xGpsManager.commandSetOverwriteOld(isOn: sender.isOn)
         }
     }
     
@@ -288,7 +289,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     }
     
     @objc func refreshUIAfterAwakening() {
-        if xGpsManager?.puck?.isConnected == false {
+        if xGpsManager.isConnected() == false {
             displayDeviceNotAttachedMessage()
         }
         else {
@@ -297,61 +298,34 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     }
     
     @objc func setAvailabilityOfUI() {
-        if xGpsManager?.puck?.deviceSettingsHaveBeenRead == false {
-            sectionCount = 1
-//            xGpsManager?.puck?.readDeviceSettings()
-            settingsTableView.reloadData()
+        sectionCount = section.count
+        waitingView.isHidden = true
+        settingsTableView.reloadData()
+        UserDefaults.standard.set(xGpsManager.loggingEnabled(), forKey: "record_turn_on_preference")
+        UserDefaults.standard.set(xGpsManager.logOverWriteEnabled(), forKey: "record_overwrite_preference")
+        // a log update rate value of 255 means the XGPS160 is using the default value of one sample per second.
+//            recordingRates = ["10Hz", "5Hz", "1Hz", "5sec", "20sec"]
+        let value = xGpsManager.logInterval()
+        if value == 1 {  // 10 hz
+            UserDefaults.standard.set(Constants.recordingRates[0], forKey: "record_rate_preference")
+        }
+        else if value == 2 { // 5hz
+            UserDefaults.standard.set(Constants.recordingRates[1], forKey: "record_rate_preference")
+        }
+        else if value == 10 {
+            UserDefaults.standard.set(Constants.recordingRates[2], forKey: "record_rate_preference")
+        }
+        else if value == 255 {
+            UserDefaults.standard.set(Constants.recordingRates[2], forKey: "record_rate_preference")
+        }
+        else if value == 50 {
+            UserDefaults.standard.set(Constants.recordingRates[3], forKey: "record_rate_preference")
+        }
+        else if value == 200 {
+            UserDefaults.standard.set(Constants.recordingRates[4], forKey: "record_rate_preference")
         }
         else {
-            sectionCount = section.count
-            waitingView.isHidden = true
-            settingsTableView.reloadData()
-            if let value = xGpsManager?.puck?.alwaysRecordWhenDeviceIsOn {
-                UserDefaults.standard.set(value, forKey: "record_turn_on_preference")
-            }
-            else {
-                UserDefaults.standard.set(false, forKey: "record_turn_on_preference")
-            }
-            if let value = xGpsManager?.puck?.stopRecordingWhenMemoryFull {
-                UserDefaults.standard.set(!value, forKey: "record_overwrite_preference")
-            }
-            else {
-                UserDefaults.standard.set(false, forKey: "record_overwrite_preference")
-            }
-            // a log update rate value of 255 means the XGPS160 is using the default value of one sample per second.
-//            recordingRates = ["10Hz", "5Hz", "1Hz", "5sec", "20sec"]
-            if let value = xGpsManager?.puck?.logUpdateRate {
-                if value == 1 {  // 10 hz
-                    UserDefaults.standard.set(Constants.recordingRates[0], forKey: "record_rate_preference")
-                    //                updateRateChoice.selectedSegmentIndex = 0
-                }
-                else if value == 2 { // 5hz
-                    UserDefaults.standard.set(Constants.recordingRates[1], forKey: "record_rate_preference")
-                    //                updateRateChoice.selectedSegmentIndex = 1
-                }
-                else if value == 10 {
-                    UserDefaults.standard.set(Constants.recordingRates[2], forKey: "record_rate_preference")
-                    //                updateRateChoice.selectedSegmentIndex = 2
-                }
-                else if value == 255 {
-                    UserDefaults.standard.set(Constants.recordingRates[2], forKey: "record_rate_preference")
-                    //                updateRateChoice.selectedSegmentIndex = 2
-                }
-                else if value == 50 {
-                    UserDefaults.standard.set(Constants.recordingRates[3], forKey: "record_rate_preference")
-                    //                updateRateChoice.selectedSegmentIndex = 3
-                }
-                else if value == 200 {
-                    UserDefaults.standard.set(Constants.recordingRates[4], forKey: "record_rate_preference")
-                }
-                else {
-                    //                updateRateChoice.selectedSegmentIndex = Int(UISegmentedControlNoSegment)
-                    UserDefaults.standard.set(Constants.recordingRates[2], forKey: "record_rate_preference")
-                }
-            }
-            else {
-                UserDefaults.standard.set(Constants.recordingRates[2], forKey: "record_rate_preference")
-            }
+            UserDefaults.standard.set(Constants.recordingRates[2], forKey: "record_rate_preference")
         }
     }
             // a log update rate value of 255 means the XGPS160 is using the default value of one sample per second.
