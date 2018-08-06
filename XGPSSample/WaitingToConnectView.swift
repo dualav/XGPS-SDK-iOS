@@ -10,7 +10,7 @@ import UIKit
 class WaitingToConnectView: UIView {
     
     init() {
-        super.init(frame: getFrame())
+        super.init(frame: CGRect(x: 0, y: 0, width: 0, height: 0))
         backgroundColor = UIColor.clear
     }
     

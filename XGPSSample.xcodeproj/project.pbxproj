@@ -346,6 +346,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = A32KJ46WFF;
 				INFOPLIST_FILE = XGPSSample/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.dualav.XGPSSample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -364,6 +365,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = A32KJ46WFF;
 				INFOPLIST_FILE = XGPSSample/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.dualav.XGPSSample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
