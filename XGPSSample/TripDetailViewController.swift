@@ -7,6 +7,8 @@
 //
 
 import UIKit
+import XGPSSDKSwift
+import XGPSSDK
 
 class LogBulkData:NSObject, NSCoding {
     let date: String

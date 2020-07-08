@@ -6,6 +6,9 @@
 //  Copyright © 2017년 namsung. All rights reserved.
 //
 
+import Foundation
+import XGPSSDK
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Delegate
 @objc
@@ -27,11 +30,11 @@ public protocol XGPSDelegate: class {
 public class XGPSManager {
     public static let XGPS150 = "XGPS150"
     public static let XGPS160 = "XGPS160"
-    var puck: Puck
-    var currentModel:String?
-    var delegate: XGPSDelegate?
+    public var puck: Puck
+    public var currentModel:String?
+    public var delegate: XGPSDelegate?
     
-    init() {
+    public init() {
         print("XGPSManager init")
         self.puck = Puck()
         
@@ -109,36 +112,36 @@ public class XGPSManager {
 
     }
     
-    func isConnected() -> Bool {
+    public func isConnected() -> Bool {
         return puck.isConnected
     }
     
-    func logListData() -> NSMutableArray {
+    public func logListData() -> NSMutableArray {
         return puck.logListData
     }
     
-    func logBulkDic() -> NSMutableArray {
+    public func logBulkDic() -> NSMutableArray {
         return puck.logBulkDic
     }
     
-    func loggingEnabled() -> Bool {
+    public func loggingEnabled() -> Bool {
         return puck.loggingEnabled
     }
     
-    func logOverWriteEnabled() -> Bool {
+    public func logOverWriteEnabled() -> Bool {
         return puck.logOverWriteEnabled
     }
     
-    func logInterval() -> Int32 {
+    public func logInterval() -> Int32 {
         return puck.logInterval
     }
     
     // MARK: puck command list
-    func commandGetSettings() {
+    public func commandGetSettings() {
         puck.sendCommand(toDevice: Int32(cmd160_getSettings), 0, nil, 0)
     }
     
-    func commandLogAccessMode() {
+    public func commandLogAccessMode() {
         /* It's much simpler to deal with log data information while the device is not streaming GPS data. So the
          recommended practice is to pause the NMEA stream output during the time that logs are being accessed
          and manipulated.
@@ -152,11 +155,11 @@ public class XGPSManager {
         })
     }
     
-    func commandStreamEnable() {
+    public func commandStreamEnable() {
         puck.streamEnable()
     }
     
-    func commandGetLogList(delegate: TripLogDelegate) {
+    public func commandGetLogList(delegate: TripLogDelegate) {
         print("cmd160_logList")
         puck.logListData.removeAllObjects()
         puck.logBulkDic.removeAllObjects()
@@ -169,11 +172,11 @@ public class XGPSManager {
 //        })
     }
     
-    func commandGetFreeSpace() {
+    public func commandGetFreeSpace() {
         puck.sendCommand(toDevice: Int32(cmd160_fileFreeSpace), 0, nil, 0)
     }
     
-    func commandLogDelete(logData: LogData) {
+    public func commandLogDelete(logData: LogData) {
         let startBlock = (logData.startBlock)
         let countBlock = (logData.countBlock)
         print("start block: \(startBlock) -- block number: \(countBlock)")
@@ -185,20 +188,22 @@ public class XGPSManager {
             return
         }
         let buff = UnsafeMutablePointer<UInt8>.allocate(capacity: 4)
-        buff.initialize(from: [UInt8(startBlock >> 8), UInt8(startBlock), UInt8(countBlock >> 8), UInt8(countBlock)])
+        var bytes = [UInt8(startBlock >> 8), UInt8(startBlock), UInt8(countBlock >> 8), UInt8(countBlock)]
+        buff.initialize(from: &bytes, count: 4)
         puck.sendCommand(toDevice: Int32(cmd160_logDelBlock), 0, buff, 4)
     }
     
-    func commandGetLogBulk(logData: LogData, delegate: TripLogDelegate) {
+    public func commandGetLogBulk(logData: LogData, delegate: TripLogDelegate) {
         puck.tripLogDelegate = delegate
         let dataExportBlock = logData.startBlock
         let dataExportNumBlock = logData.countBlock
         let buff = UnsafeMutablePointer<UInt8>.allocate(capacity: 4)
-        buff.initialize(from: [UInt8(dataExportBlock >> 8), UInt8(dataExportBlock), UInt8(dataExportNumBlock >> 8), UInt8(dataExportNumBlock)])
+        var bytes = [UInt8(dataExportBlock >> 8), UInt8(dataExportBlock), UInt8(dataExportNumBlock >> 8), UInt8(dataExportNumBlock)]
+        buff.initialize(from: &bytes, count: 4)
         puck.sendCommand(toDevice: Int32(cmd160_logReadBulk), 0, buff, 4)
     }
     
-    func commandSetAlwaysRecord(isOn: Bool) {
+    public func commandSetAlwaysRecord(isOn: Bool) {
         if isOn {
             puck.loggingEnabled = true
             puck.sendCommand(toDevice: Int32(cmd160_logEnable), 0, nil, 0)
@@ -209,7 +214,7 @@ public class XGPSManager {
         }
     }
     
-    func commandSetOverwriteOld(isOn: Bool) {
+    public func commandSetOverwriteOld(isOn: Bool) {
         if isOn {
             puck.logOverWriteEnabled = true
             puck.sendCommand(toDevice: Int32(cmd160_logOWEnable), 0, nil, 0)
@@ -221,7 +226,7 @@ public class XGPSManager {
     }
     
     @discardableResult
-    func commandLoggingUpdateRate(_ rate: UInt8) -> Bool {
+    public func commandLoggingUpdateRate(_ rate: UInt8) -> Bool {
         if checkForAdjustableRateLogging() == false {
             print("Device firware version does not support adjustable logging rates. Firmware 1.3.5 or greater is required.")
             print("Firware updates are available through the XGPS160 Status Tool app.")
