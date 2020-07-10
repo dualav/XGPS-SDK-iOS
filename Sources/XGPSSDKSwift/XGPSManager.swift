@@ -159,6 +159,10 @@ public class XGPSManager {
         puck.streamEnable()
     }
     
+    public func commandStreamDisable() {
+        puck.streamDisable()
+    }
+    
     public func commandGetLogList(delegate: TripLogDelegate) {
         print("cmd160_logList")
         puck.logListData.removeAllObjects()
