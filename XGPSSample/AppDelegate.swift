@@ -8,6 +8,8 @@
 
 import UIKit
 
+import XGPSSDKSwift
+
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?

@@ -8,6 +8,8 @@
 // This View controller visible only XGPS160
 
 import UIKit
+import XGPSSDKSwift
+import XGPSSDK
 
 class TripsCell : UITableViewCell {
     @IBOutlet weak var dateAndTimeLabel: UILabel!

@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import XGPSSDKSwift
 
 class GPSViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, XGPSDelegate {
     static let KEY_CONNECTION = "Connection"
