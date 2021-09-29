@@ -164,9 +164,6 @@ public class XGPSManager {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             self.puck.sendCommand(toDevice: Int32(cmd160_logList), 0, nil, 0)
         }
-//        DispatchQueue.global(qos: .default).async(execute: {
-//            self.puck.sendCommand(toDevice: Int32(cmd160_logList), 0, nil, 0)
-//        })
     }
     
     func commandGetFreeSpace() {
@@ -178,15 +175,11 @@ public class XGPSManager {
         let countBlock = (logData.countBlock)
         print("start block: \(startBlock) -- block number: \(countBlock)")
         
-        if startBlock < 0 || startBlock >= 520 {
-            return
+        if (startBlock >= 0 && startBlock < 520 && countBlock >= 0 && countBlock <= 520) {
+            let buff = UnsafeMutablePointer<UInt8>.allocate(capacity: 4)
+            buff.initialize(from: [UInt8((startBlock & 0xff00) >> 8), UInt8(startBlock & 0xff), UInt8((countBlock & 0xff00) >> 8), UInt8(countBlock & 0xff)])
+            puck.sendCommand(toDevice: Int32(cmd160_logDelBlock), 0, buff, 4)
         }
-        if countBlock < 0 || countBlock > 520 {
-            return
-        }
-        let buff = UnsafeMutablePointer<UInt8>.allocate(capacity: 4)
-        buff.initialize(from: [UInt8(startBlock >> 8), UInt8(startBlock), UInt8(countBlock >> 8), UInt8(countBlock)])
-        puck.sendCommand(toDevice: Int32(cmd160_logDelBlock), 0, buff, 4)
     }
     
     func commandGetLogBulk(logData: LogData, delegate: TripLogDelegate) {
@@ -194,7 +187,7 @@ public class XGPSManager {
         let dataExportBlock = logData.startBlock
         let dataExportNumBlock = logData.countBlock
         let buff = UnsafeMutablePointer<UInt8>.allocate(capacity: 4)
-        buff.initialize(from: [UInt8(dataExportBlock >> 8), UInt8(dataExportBlock), UInt8(dataExportNumBlock >> 8), UInt8(dataExportNumBlock)])
+        buff.initialize(from: [UInt8(dataExportBlock >> 8), UInt8(dataExportBlock & 0xff), UInt8(dataExportNumBlock >> 8), UInt8(dataExportNumBlock & 0xff)])
         puck.sendCommand(toDevice: Int32(cmd160_logReadBulk), 0, buff, 4)
     }
     

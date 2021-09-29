@@ -52,46 +52,56 @@ class ProgressDialogViewController: UIViewController, UIDocumentInteractionContr
     
     
     // MARK: - GPX string creation
-    
-    func createBogusGPXString() {
-        gpxString += "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-        gpxString += "<gpx version=\"1.0\">"
-        gpxString += "  <name>Example gpx</name>"
-        gpxString += "  <wpt lat=\"46.57638889\" lon=\"8.89263889\">"
-        gpxString += "    <ele>2372</ele>"
-        gpxString += "    <name>LAGORETICO</name>"
-        gpxString += "  </wpt>"
-        gpxString += "  <trk><name>Example gpx</name><number>1</number><trkseg>"
-        gpxString += "    <trkpt lat=\"46.57608333\" lon=\"8.89241667\"><ele>2376</ele><time>2007-10-14T10:09:57Z</time></trkpt>"
-        gpxString += "    <trkpt lat=\"46.57619444\" lon=\"8.89252778\"><ele>2375</ele><time>2007-10-14T10:10:52Z</time></trkpt>"
-        gpxString += "    <trkpt lat=\"46.57641667\" lon=\"8.89266667\"><ele>2372</ele><time>2007-10-14T10:12:39Z</time></trkpt>"
-        gpxString += "    <trkpt lat=\"46.57650000\" lon=\"8.89280556\"><ele>2373</ele><time>2007-10-14T10:13:12Z</time></trkpt>"
-        gpxString += "    <trkpt lat=\"46.57638889\" lon=\"8.89302778\"><ele>2374</ele><time>2007-10-14T10:13:20Z</time></trkpt>"
-        gpxString += "    <trkpt lat=\"46.57652778\" lon=\"8.89322222\"><ele>2375</ele><time>2007-10-14T10:13:48Z</time></trkpt>"
-        gpxString += "    <trkpt lat=\"46.57661111\" lon=\"8.89344444\"><ele>2376</ele><time>2007-10-14T10:14:08Z</time></trkpt>"
-        gpxString += "  </trkseg></trk>"
-        gpxString += "</gpx>"
+//
+//    func createBogusGPXString() {
+//        gpxString += "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+//        gpxString += "<gpx version=\"1.0\">"
+//        gpxString += "  <name>Example gpx</name>"
+//        gpxString += "  <wpt lat=\"46.57638889\" lon=\"8.89263889\">"
+//        gpxString += "    <ele>2372</ele>"
+//        gpxString += "    <name>LAGORETICO</name>"
+//        gpxString += "  </wpt>"
+//        gpxString += "  <trk><name>Example gpx</name><number>1</number><trkseg>"
+//        gpxString += "    <trkpt lat=\"46.57608333\" lon=\"8.89241667\"><ele>2376</ele><time>2007-10-14T10:09:57Z</time></trkpt>"
+//        gpxString += "    <trkpt lat=\"46.57619444\" lon=\"8.89252778\"><ele>2375</ele><time>2007-10-14T10:10:52Z</time></trkpt>"
+//        gpxString += "    <trkpt lat=\"46.57641667\" lon=\"8.89266667\"><ele>2372</ele><time>2007-10-14T10:12:39Z</time></trkpt>"
+//        gpxString += "    <trkpt lat=\"46.57650000\" lon=\"8.89280556\"><ele>2373</ele><time>2007-10-14T10:13:12Z</time></trkpt>"
+//        gpxString += "    <trkpt lat=\"46.57638889\" lon=\"8.89302778\"><ele>2374</ele><time>2007-10-14T10:13:20Z</time></trkpt>"
+//        gpxString += "    <trkpt lat=\"46.57652778\" lon=\"8.89322222\"><ele>2375</ele><time>2007-10-14T10:13:48Z</time></trkpt>"
+//        gpxString += "    <trkpt lat=\"46.57661111\" lon=\"8.89344444\"><ele>2376</ele><time>2007-10-14T10:14:08Z</time></trkpt>"
+//        gpxString += "  </trkseg></trk>"
+//        gpxString += "</gpx>"
+//    }
+//
+    func convertDateString(dateString : String!, fromFormat sourceFormat : String!, toFormat desFormat : String!) -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = sourceFormat
+        let date = dateFormatter.date(from: dateString)
+        dateFormatter.dateFormat = desFormat
+        return dateFormatter.string(from: date!)
     }
     
     func createGPXString() {
-        var trackPoint: String
         let sizeOfTrack: Int = logBulkDataList.count
         var index: Int = 0
         // create the GPX string header
         gpxString = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
         gpxString += "<gpx version=\"1.0\">\n"
-        gpxString += "  <trk><name>\(fileName)</name><trkseg>\n"
+        gpxString += "\t<trk><name>\(fileName)</name><trkseg>\n"
         // add the trackpoint data
         for data in logBulkDataList {
-            trackPoint = "    <trkpt lat=\"%.6f\" lon=\"%.6f\"><ele>\(data.latitude)</ele><time>\(data.longitude)</time></trkpt>\n"
+            let latString = String(format : "%.6f", data.latitude)
+            let lotString = String(format : "%.6f", data.longitude)
+            let altString = String(format : "%.2f", data.altitude)
+            let timeString = convertDateString(dateString: data.date, fromFormat: "YYYY/MM/dd", toFormat: "YYYY-MM-dd") + "T" + data.utc + "Z"
+            let trackPoint = "\t\t<trkpt lat=\"\(latString)\" lon=\"\(lotString)\"><ele>\(altString)</ele><time>\(timeString)</time></trkpt>\n"
             gpxString += "\(trackPoint)"
-            trackPoint = ""
             // update progress bar
             index += 1
             exportProgress.progress = Float(index) / Float(sizeOfTrack)
         }
         // properly terminate GPX file
-        gpxString += "  </trkseg></trk>\n"
+        gpxString += "\t</trkseg></trk>\n"
         gpxString += "</gpx>"
         print("GPX String:\n\(gpxString)")
     }
@@ -112,14 +122,6 @@ class ProgressDialogViewController: UIViewController, UIDocumentInteractionContr
     }
     
     func writeGPXLogFile() {
-//        fp = fopen(fileNameWithPath.utf8CString, "w")
-//        if fp == nil {
-//            print("can't open file.\n")
-//            exit(0)
-//        }
-//        fprintf(fp, "%s", gpxString.utf8CString)
-//        fclose(fp)
-//
         let data = gpxString.data(using: .utf8, allowLossyConversion: false)!
         
         if FileManager.default.fileExists(atPath: fileNameWithPath.path) {

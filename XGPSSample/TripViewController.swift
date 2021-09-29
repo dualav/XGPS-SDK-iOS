@@ -56,7 +56,7 @@ class TripViewController: UITableViewController, TripLogDelegate {
     }
     
     func setTableTitleText() {
-        var num: Int = logItems.count
+        let num: Int = logItems.count
         print("\(#function). here. # of records = \(num).")
         if num == 0 {
             topTitleBar?.title = "No Trips in Memory"
@@ -121,8 +121,9 @@ class TripViewController: UITableViewController, TripLogDelegate {
         logItems.removeAll()
         if xGpsManager.isConnected() {
             xGpsManager.commandGetLogList(delegate: self)
-            // 9초동안 로그리스트를 못받고 있을때 종료시킨다
+            
             timeoutTask = DispatchWorkItem {
+                // TODO : close or dismiss something within 9 sec
             }
             
             // execute task in 2 seconds
@@ -136,15 +137,10 @@ class TripViewController: UITableViewController, TripLogDelegate {
         DispatchQueue.global(qos: .default).async(execute: {() -> Void in
 
             DispatchQueue.main.async(execute: {() -> Void in
-//                self.currentAlert?.dismiss(animated: true, completion: {() -> Void in
-                    self.timeoutTask?.cancel()
-//                    self.currentAlert = nil
-//                    print("alert dismissed")
-//                })
+                self.timeoutTask?.cancel()
                 if self.xGpsManager.isConnected() {
-                    // 스토리지 구하기     /////////////////////////////////////////////////////////////////////
+                    // get Storage   /////////////////////////////////////////////////////////////////////
                     var countBlock: Float = 0
-                    var sumFileSize : CLongLong = -1
                     for dic in self.xGpsManager.logListData() {
                         if let block: String = ((dic as! NSDictionary).object(forKey: "countBlock") as? String) {
                             countBlock += Float(block)!
@@ -159,7 +155,7 @@ class TripViewController: UITableViewController, TripLogDelegate {
                             let logData = LogData.init(sig: (Int(sig) ?? 0), interval: Int(interval)!,
                                                        startBlock: Int(startBlock)!, countEntry: Int(countEntry)!,
                                                        countBlock: Int(block)!, createDate: startDate, createTime: startTod, fileSize: 0,
-                                                       defaultString: XGPSManager.UTCToLocal(date: titleText), localFilename: "")
+                                                       defaultString: localDateTime, localFilename: "")
                             self.logItems.append(logData)
                         }
                     }
@@ -175,20 +171,7 @@ class TripViewController: UITableViewController, TripLogDelegate {
     }
     
     func deleteFromXGPS(logData: LogData) {
-//        let startBlock = (logData.startBlock)
-//        let countBlock = (logData.countBlock)
-//        print("start block: \(startBlock) -- block number: \(countBlock)")
-//
-//        if startBlock < 0 || startBlock >= 520 {
-//            return
-//        }
-//        if countBlock < 0 || countBlock > 520 {
-//            return
-//        }
-//        let buff = UnsafeMutablePointer<UInt8>.allocate(capacity: 4)
-//        buff.initialize(from: [UInt8(startBlock >> 8), UInt8(startBlock), UInt8(countBlock >> 8), UInt8(countBlock)])
         xGpsManager.commandLogDelete(logData: logData)
-        self.logItems.removeAll()
         getLogList()
     }
     
@@ -207,7 +190,7 @@ class TripViewController: UITableViewController, TripLogDelegate {
     func logBulkProgress(_ progress: UInt) {
     }
     
-    func logBulkComplete(_ data: NSData) {
+    func logBulkComplete(_ data: Data) {
     }
     
     // MARK: - Table view data source
@@ -221,9 +204,7 @@ class TripViewController: UITableViewController, TripLogDelegate {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let CellIdentifier = "LogListEntryCell"
-        var cell = tableView.dequeueReusableCell(withIdentifier: CellIdentifier, for: indexPath) as! TripsCell
-
-//        let cell = UITableViewCell(style: .default, reuseIdentifier: "LogListEntryCell") as! TripsCell
+        let cell = tableView.dequeueReusableCell(withIdentifier: CellIdentifier, for: indexPath) as! TripsCell
         if logItems.count <= indexPath.row {
             return cell
         }
@@ -234,37 +215,8 @@ class TripViewController: UITableViewController, TripLogDelegate {
         cell.dateAndTimeLabel.text = String(format:"%@ %@", key.createDate, key.createTime)
         cell.durationLabel.text = ""
         cell.numberOfGPSSamplesLabel.text = "\(key.countEntry)"
-//        cell.textLabel?.text = key.defaultString
         
         return cell
-
-//
-//
-//        if let logListEntry = logItems[indexPath.row] {
-//            let dict = logListEntry as? NSDictionary
-//            let date = dict!["humanFriendlyStartDate"] as? String
-//            let time = dict!["humanFriendlyStartTime"] as? String
-//            let duration = dict!["humanFriendlyDuration"] as? String
-//            let samples = dict!["countEntry"] as? Int
-//
-//            cell?.logListIndexLabel.text = "#\(Int(indexPath.row) + 1)"
-//            cell?.dateAndTimeLabel.text = String(format:"%@ %@", date!, time!)
-//            cell?.durationLabel.text = duration
-//            cell?.numberOfGPSSamplesLabel.text = String(describing: samples!) // "\(samples))"
-//        }
-//        return cell as? UITableViewCell ?? UITableViewCell()
-    }
-    
-    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-//        selectedIndex = indexPath.row
-//        let logListEntry = logItems[selectedIndex]
-//        selectedLogData = logListEntry
-////        if selectedIndex == lastSelectedIndex {
-////            return
-////        }
-//        //NSLog(@"%s. loglistEntry = %@", __FUNCTION__, logListEntry);
-//        lastSelectedIndex = selectedIndex
-//        self.performSegue(withIdentifier: "TripDetail", sender: self)
     }
     
     override func setEditing(_ editing: Bool, animated: Bool) {
@@ -282,12 +234,11 @@ class TripViewController: UITableViewController, TripLogDelegate {
 
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            let logData = logItems[indexPath.row]
-            deleteFromXGPS(logData: logData)
-            self.tableView.beginUpdates()
-            self.tableView.deleteRows(at: [indexPath], with: .fade)
-            self.tableView.endUpdates()
-            setTableTitleText()
+            if (indexPath.row < logItems.count) {
+                let logData = logItems[indexPath.row]
+                deleteFromXGPS(logData: logData)
+                setTableTitleText()
+            }
         }
     }
     

@@ -175,7 +175,7 @@ class TripDetailViewController : UITableViewController, ProgressDialogViewContro
     @objc func logBulkProgress(_ progress: UInt) {
     }
     
-    @objc func logBulkComplete(_ data: NSData) {
+    @objc func logBulkComplete(_ data: Data) {
         logBulkDataList.removeAll()
         for dic in xGpsManager.logBulkDic() {
             let date : String = ((dic as! NSDictionary).object(forKey: "date") as? String)!
@@ -227,7 +227,7 @@ class TripDetailViewController : UITableViewController, ProgressDialogViewContro
             cell.movementLabel.text = String(format: "%.0f˚ at %ld mph", sample.heading, sample.speed)
             cell.timestampLabel.text = sample.utc
         }
-        return cell as? UITableViewCell ?? UITableViewCell()
+        return cell
     }
     
     // MARK: - progress Dialog delegate
