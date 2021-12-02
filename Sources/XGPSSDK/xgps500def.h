@@ -8,7 +8,9 @@
 
 #ifndef xgps500def_h
 #define xgps500def_h
-
+#include <stdint.h>
+#include <stdbool.h>
+#include "xgps160def.h"
 
 
 typedef struct {
