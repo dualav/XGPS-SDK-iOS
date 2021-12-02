@@ -16,7 +16,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var xGpsManager: XGPSManager = XGPSManager()
     var reservedViewController:UIViewController! = nil
 
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
 
         initializeUserDefault()
@@ -28,14 +28,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         if let model = xGpsManager.currentModel {
             if (model.contains(XGPSManager.XGPS150)) {
                 // if you use xgps150, you couldn't use trip mode.
-                if let tabController = self.window?.rootViewController?.childViewControllers[0] as? UITabBarController, var viewControllers = tabController.viewControllers {
+                if let tabController = self.window?.rootViewController?.children[0] as? UITabBarController, var viewControllers = tabController.viewControllers {
                     if reservedViewController == nil {
                         reservedViewController = viewControllers[1]
                         viewControllers.remove(at: 1)
                     }
                     tabController.viewControllers = viewControllers
-                    tabController.removeFromParentViewController()
-                    self.window?.rootViewController?.addChildViewController(tabController)
+                    tabController.removeFromParent()
+                    self.window?.rootViewController?.addChild(tabController)
                     // further operations to make your root controller visible....
                 }
                 else {
@@ -43,12 +43,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 }
             }
             else if model.contains(XGPSManager.XGPS160) && reservedViewController != nil {
-                if let tabController = self.window?.rootViewController?.childViewControllers[0] as? UITabBarController, var viewControllers = tabController.viewControllers {
+                if let tabController = self.window?.rootViewController?.children[0] as? UITabBarController, var viewControllers = tabController.viewControllers {
                     viewControllers.insert(reservedViewController, at: 1)
                     reservedViewController = nil
                     tabController.viewControllers = viewControllers
-                    tabController.removeFromParentViewController()
-                    self.window?.rootViewController?.addChildViewController(tabController)
+                    tabController.removeFromParent()
+                    self.window?.rootViewController?.addChild(tabController)
 //                    self.window?.rootViewController = tabController
                     // further operations to make your root controller visible....
                 }

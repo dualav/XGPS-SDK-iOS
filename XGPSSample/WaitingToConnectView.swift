@@ -76,7 +76,7 @@ class WaitingToConnectView: UIView {
         waitingLabel.numberOfLines = 2
         waitingLabel.text = "Waiting for the XGPS..."
         let spinner = UIActivityIndicatorView(frame: CGRect(x: 82, y: 66, width: 37, height: 37))
-        spinner.activityIndicatorViewStyle = .whiteLarge
+        spinner.style = .whiteLarge
         spinner.startAnimating()
         addSubview(waitingLabel)
         addSubview(spinner)

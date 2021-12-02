@@ -118,18 +118,18 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
         // TODO : integrate user default key & dictionary key
         let key = self.items[indexPath.section][indexPath.row]
         if key == SettingsViewController.KEY_SPEED_UNIT {
-            cell.accessoryType = UITableViewCellAccessoryType.disclosureIndicator
+            cell.accessoryType = UITableViewCell.AccessoryType.disclosureIndicator
             if let unit = UserDefaults.standard.string(forKey: "speed_preference") {
                 cell.detailTextLabel?.text = unit
             }
         }
         else if key == SettingsViewController.KEY_ALTITUDE_UNIT {
-            cell.accessoryType = UITableViewCellAccessoryType.disclosureIndicator
+            cell.accessoryType = UITableViewCell.AccessoryType.disclosureIndicator
             let unit = UserDefaults.standard.string(forKey: "altitude_preference")
             cell.detailTextLabel?.text = unit
         }
         else if key == SettingsViewController.KEY_POSITION_UNIT {
-            cell.accessoryType = UITableViewCellAccessoryType.disclosureIndicator
+            cell.accessoryType = UITableViewCell.AccessoryType.disclosureIndicator
             let unit = UserDefaults.standard.string(forKey: "position_preference")
             cell.detailTextLabel?.text = unit
         }
@@ -150,12 +150,12 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
             cell.accessoryView = switchView
         }
         else if key == SettingsViewController.KEY_RECORD_RATE {
-            cell.accessoryType = UITableViewCellAccessoryType.disclosureIndicator
+            cell.accessoryType = UITableViewCell.AccessoryType.disclosureIndicator
             let unit = UserDefaults.standard.string(forKey: "record_rate_preference")
             cell.detailTextLabel?.text = unit
         }
         else if key == SettingsViewController.KEY_UPDATE_RATE {
-            cell.accessoryType = UITableViewCellAccessoryType.disclosureIndicator
+            cell.accessoryType = UITableViewCell.AccessoryType.disclosureIndicator
             let unit = UserDefaults.standard.string(forKey: "update_rate_preference")
             cell.detailTextLabel?.text = unit
         }
@@ -169,7 +169,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let cell = tableView.cellForRow(at: indexPath)
-        if cell?.accessoryType == UITableViewCellAccessoryType.disclosureIndicator {
+        if cell?.accessoryType == UITableViewCell.AccessoryType.disclosureIndicator {
             let vc =  self.storyboard?.instantiateViewController(withIdentifier: "SettingDetail") as! SettingDetailViewController
             let title: String = (cell?.textLabel?.text)!
             let value: String = (cell?.detailTextLabel?.text)!

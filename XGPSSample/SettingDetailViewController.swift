@@ -55,7 +55,7 @@ class SettingDetailViewController : UIViewController, UITableViewDelegate, UITab
         // Configure the cell...
         let key = self.items[indexPath.row]
         if key == selectedItem {
-            cell.accessoryType = UITableViewCellAccessoryType.checkmark
+            cell.accessoryType = UITableViewCell.AccessoryType.checkmark
         }
         cell.textLabel?.text = key
         
