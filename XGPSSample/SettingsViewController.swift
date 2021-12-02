@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import XGPSSDKSwift
 
 class SettingsViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, XGPSDelegate, SettingDetailDelegate {
     static let KEY_SPEED_UNIT = "Show speed in"

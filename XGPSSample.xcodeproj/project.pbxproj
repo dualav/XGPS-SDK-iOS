@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 48;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -18,7 +18,6 @@
 		A74C76421FA30D4A00EE6E58 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A74C76401FA30D4A00EE6E58 /* Main.storyboard */; };
 		A74C76441FA30D4A00EE6E58 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A74C76431FA30D4A00EE6E58 /* Assets.xcassets */; };
 		A74C76471FA30D4A00EE6E58 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A74C76451FA30D4A00EE6E58 /* LaunchScreen.storyboard */; };
-		A74C76511FA312BE00EE6E58 /* XGPSManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A74C76501FA312BE00EE6E58 /* XGPSManager.swift */; };
 		A74C76531FA312DC00EE6E58 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A74C76521FA312DC00EE6E58 /* SettingsViewController.swift */; };
 		A74C76561FA31D0700EE6E58 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A74C76551FA31D0700EE6E58 /* Images.xcassets */; };
 		A783731E1FA94B1F0029BA1C /* WaitingToConnectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A783731D1FA94B1F0029BA1C /* WaitingToConnectView.swift */; };
@@ -31,6 +30,8 @@
 		A7BE86862117EE1200C00BD2 /* ntripclient.c in Sources */ = {isa = PBXBuildFile; fileRef = A7BE86842117EE1100C00BD2 /* ntripclient.c */; };
 		A7CE8B9A1FA7223D0053B8AD /* Definitions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7CE8B991FA7223D0053B8AD /* Definitions.swift */; };
 		A7EABEF82703F96B005CA131 /* LogData.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7EABEF72703F96B005CA131 /* LogData.swift */; };
+		BA00E20024B610610037233E /* XGPSSDK in Frameworks */ = {isa = PBXBuildFile; productRef = BA00E1FF24B610610037233E /* XGPSSDK */; };
+		BA00E20224B610610037233E /* XGPSSDKSwift in Frameworks */ = {isa = PBXBuildFile; productRef = BA00E20124B610610037233E /* XGPSSDKSwift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,10 +48,8 @@
 		A74C76431FA30D4A00EE6E58 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A74C76461FA30D4A00EE6E58 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		A74C76481FA30D4A00EE6E58 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		A74C76501FA312BE00EE6E58 /* XGPSManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XGPSManager.swift; sourceTree = "<group>"; };
 		A74C76521FA312DC00EE6E58 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		A74C76551FA31D0700EE6E58 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
-		A77A128C1FA85BBE0047AAC5 /* Common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Common.h; sourceTree = "<group>"; };
 		A783731D1FA94B1F0029BA1C /* WaitingToConnectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaitingToConnectView.swift; sourceTree = "<group>"; };
 		A79E3DD41FA6BB750041CB5C /* XGPSSample-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "XGPSSample-Bridging-Header.h"; sourceTree = "<group>"; };
 		A79E3DD51FA6BB760041CB5C /* Puck.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Puck.h; sourceTree = "<group>"; };
@@ -72,6 +71,7 @@
 		A7BE86842117EE1100C00BD2 /* ntripclient.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ntripclient.c; sourceTree = "<group>"; };
 		A7CE8B991FA7223D0053B8AD /* Definitions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Definitions.swift; sourceTree = "<group>"; };
 		A7EABEF72703F96B005CA131 /* LogData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LogData.swift; sourceTree = "<group>"; };
+		BA00E1FD24B610160037233E /*  */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ""; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +79,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BA00E20024B610610037233E /* XGPSSDK in Frameworks */,
+				BA00E20224B610610037233E /* XGPSSDKSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -88,8 +90,10 @@
 		A74C762E1FA30D4A00EE6E58 = {
 			isa = PBXGroup;
 			children = (
+				BA00E1FD24B610160037233E /*  */,
 				A74C76391FA30D4A00EE6E58 /* XGPSSample */,
 				A74C76381FA30D4A00EE6E58 /* Products */,
+				BA00E1FE24B610610037233E /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -104,7 +108,6 @@
 		A74C76391FA30D4A00EE6E58 /* XGPSSample */ = {
 			isa = PBXGroup;
 			children = (
-				A74C764F1FA311ED00EE6E58 /* XGPSSDK */,
 				A74C763A1FA30D4A00EE6E58 /* AppDelegate.swift */,
 				A74C763C1FA30D4A00EE6E58 /* GPSViewController.swift */,
 				A74C763E1FA30D4A00EE6E58 /* TripViewController.swift */,
@@ -124,7 +127,7 @@
 			path = XGPSSample;
 			sourceTree = "<group>";
 		};
-		A74C764F1FA311ED00EE6E58 /* XGPSSDK */ = {
+		BA00E1FE24B610610037233E /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				A7EABEF72703F96B005CA131 /* LogData.swift */,
@@ -148,17 +151,7 @@
 				A74C76501FA312BE00EE6E58 /* XGPSManager.swift */,
 				A79E3DD41FA6BB750041CB5C /* XGPSSample-Bridging-Header.h */,
 			);
-			path = XGPSSDK;
-			sourceTree = "<group>";
-		};
-		A7BE86812117EE1100C00BD2 /* NTrip */ = {
-			isa = PBXGroup;
-			children = (
-				A7BE86822117EE1100C00BD2 /* serial.c */,
-				A7BE86832117EE1100C00BD2 /* ntripclient.h */,
-				A7BE86842117EE1100C00BD2 /* ntripclient.c */,
-			);
-			path = NTrip;
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -175,8 +168,13 @@
 			buildRules = (
 			);
 			dependencies = (
+				BA00E20624B610FB0037233E /* PBXTargetDependency */,
 			);
 			name = XGPSSample;
+			packageProductDependencies = (
+				BA00E1FF24B610610037233E /* XGPSSDK */,
+				BA00E20124B610610037233E /* XGPSSDKSwift */,
+			);
 			productName = XGPSSample;
 			productReference = A74C76371FA30D4A00EE6E58 /* XGPSSample.app */;
 			productType = "com.apple.product-type.application";
@@ -247,23 +245,24 @@
 				A7BE86862117EE1200C00BD2 /* ntripclient.c in Sources */,
 				A74C76511FA312BE00EE6E58 /* XGPSManager.swift in Sources */,
 				A74C763F1FA30D4A00EE6E58 /* TripViewController.swift in Sources */,
-				A7BE86762117ED4900C00BD2 /* Puck+XGPS160.m in Sources */,
 				A74C763B1FA30D4A00EE6E58 /* AppDelegate.swift in Sources */,
-				A7BE86852117EE1200C00BD2 /* serial.c in Sources */,
-				A79E3DD71FA6BB760041CB5C /* Puck.m in Sources */,
 				A7137C971FAA9C80003A0EF6 /* TripDetailViewController.swift in Sources */,
 				A73C86D01FAAF7D000887DDC /* SettingDetailViewController.swift in Sources */,
-				A7BE86752117ED4900C00BD2 /* Puck+XGPS500.m in Sources */,
-				A7BE86792117ED7000C00BD2 /* CommonUtil.m in Sources */,
 				A7137C991FAAC134003A0EF6 /* ProgressDialogViewController.swift in Sources */,
 				A74C76531FA312DC00EE6E58 /* SettingsViewController.swift in Sources */,
 				A74C763D1FA30D4A00EE6E58 /* GPSViewController.swift in Sources */,
-				A7BE867C2117ED8400C00BD2 /* CommonValue.m in Sources */,
 				A73C86D41FAB216B00887DDC /* Constants.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		BA00E20624B610FB0037233E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = BA00E20524B610FB0037233E /* XGPSSDKSwift */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		A74C76401FA30D4A00EE6E58 /* Main.storyboard */ = {
@@ -393,7 +392,8 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
-				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -410,7 +410,6 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.dualav.XGPSSample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = "XGPSSample/XGPSSDK/XGPSSample-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -429,7 +428,6 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.dualav.XGPSSample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = "XGPSSample/XGPSSDK/XGPSSample-Bridging-Header.h";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -457,6 +455,21 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BA00E1FF24B610610037233E /* XGPSSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = XGPSSDK;
+		};
+		BA00E20124B610610037233E /* XGPSSDKSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = XGPSSDKSwift;
+		};
+		BA00E20524B610FB0037233E /* XGPSSDKSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = XGPSSDKSwift;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A74C762F1FA30D4A00EE6E58 /* Project object */;
 }
