@@ -9,18 +9,30 @@
 import Foundation
 import XGPSSDK
 
+
+public enum GnssSystemId: Int {
+    case gps = 1
+    case glonass = 2
+    case galileo = 3
+    case beidou = 4
+    case qzss = 5
+    case navic = 6
+    case unknown = 7
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Delegate
-@objc
-public protocol XGPSDelegate: class {
+public protocol XGPSDelegate: AnyObject {
     func didUpdate(connected: Bool) -> Void
-    @objc optional func didUpdateGpsInfo(modelNumber:String, isCharging:Bool, betteryLevel:Float) -> Void
-    @objc optional func didUpdateSettings() -> Void
-    @objc optional func didUpdatePositionData(fixType: Int, latitude:Float, longitude: Float, altitude: Float,
+    func didUpdateGpsInfo(modelNumber:String, isCharging:Bool, betteryLevel:Float) -> Void
+    func didUpdateSettings() -> Void
+    func didUpdatePositionData(fixType: Int, latitude:Double, longitude: Double, altitude: Float,
                                               speedAndCourseIsValid:Bool, speed: Float, heading: Float,
-                                              utcTime: String, waas: Bool,
-                                              satellitesInView:Int, satellitesInUse: Int,
-                                              glonassInView: Int, glonassInUse: Int) -> Void
+                                              utcTime: String, waas: Bool, dgps: Bool) -> Void
+    func didUpdateSatelliteData(systemId: GnssSystemId, usedArray : NSArray,
+                                systemInfo : NSDictionary,
+                                averageSNR : Int) -> Void
 }
 
 //extension XGPSDelegate {
@@ -39,9 +51,7 @@ public class XGPSManager {
         self.puck = Puck()
         
         if let serialNumber = puck.serialNumber as String? {
-            if serialNumber.contains(XGPSManager.XGPS150) || serialNumber.contains(XGPSManager.XGPS160) {
-                currentModel = serialNumber
-            }
+            currentModel = serialNumber
         }
         
 
@@ -49,6 +59,7 @@ public class XGPSManager {
         NotificationCenter.default.addObserver(self, selector: #selector(deviceConnected), name: NSNotification.Name(rawValue: "PuckConnected"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(deviceDisConnected), name: NSNotification.Name(rawValue: "PuckDisconnected"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(positionDataUpdated), name: NSNotification.Name(rawValue: "PositionDataUpdated"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(satelliteDataUpdated), name: NSNotification.Name(rawValue: "SatelliteDataUpdated"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(positionDataUpdated), name: NSNotification.Name(rawValue: "RefreshUIAfterAwakening"), object: nil)
     }
     
@@ -60,7 +71,7 @@ public class XGPSManager {
         if delegate?.didUpdateGpsInfo == nil {
             return
         }
-        delegate?.didUpdateGpsInfo!(modelNumber: (puck.serialNumber)! as String, isCharging: puck.isCharging, betteryLevel: puck.batteryVoltage)
+        delegate?.didUpdateGpsInfo(modelNumber: (puck.serialNumber)! as String, isCharging: puck.isCharging, betteryLevel: puck.batteryVoltage)
     }
     
     @objc func deviceConnected() {
@@ -88,28 +99,45 @@ public class XGPSManager {
             return
         }
         
-        var latitude, longitude, altitude, speed, heading: Float
+        var latitude, longitude: Double
+        var altitude, speed, heading: Float
         (latitude, longitude, altitude, speed, heading) = (0.0, 0.0, 0.0, 0.0, 0.0)
-        var fixType, satellitesInView, satellitesInUse, glonassInView, glonassInUse: Int
-        (fixType, satellitesInView, satellitesInUse, glonassInView, glonassInUse) = (1, 0, 0, 0, 0)
+        var fixType: Int = 1
         var utcTime: String = ""
         latitude = puck.latitude
         longitude = puck.longitude
         altitude = puck.alt
         speed = puck.speedKph
         heading = puck.trackTrue
-        satellitesInView = Int(puck.numOfSatInView)
-        satellitesInUse = Int(puck.numOfSatInUse)
-        glonassInView = Int(puck.numOfSatInViewGlonass)
-        glonassInUse = Int(puck.numOfSatInUseGlonass)
         fixType = Int(puck.fixType)
         utcTime = puck.utc as String
-        delegate?.didUpdatePositionData!(fixType: fixType, latitude:latitude, longitude: longitude, altitude: altitude,
+        delegate?.didUpdatePositionData(fixType: fixType, latitude:latitude, longitude: longitude, altitude: altitude,
                                          speedAndCourseIsValid: puck.speedAndCourseIsValid, speed: speed, heading: heading,
-                                         utcTime:utcTime, waas:puck.waasInUse,
-                                         satellitesInView:satellitesInView, satellitesInUse: satellitesInUse,
-                                         glonassInView: glonassInView, glonassInUse: glonassInUse)
+                                         utcTime:utcTime, waas:puck.waasInUse, dgps: puck.isDGPS)
 
+    }
+
+    
+    @objc func satelliteDataUpdated(_ notification: Notification) {
+        if (delegate?.didUpdateSatelliteData == nil) {
+            return
+        }
+        var systemId = 1
+        if let userInfoId = notification.userInfo?["systemId"] as? Int {
+            systemId = userInfoId
+        }
+        
+        guard let usedArray = puck.satellitesUsedArray[systemId-1] as? NSArray, let systemInfo = puck.satellitesInfoArray[systemId-1] as? NSDictionary else {
+            return
+        }
+        let average = puck.avgUsableSatSNR()
+        
+        delegate?.didUpdateSatelliteData(systemId: GnssSystemId(rawValue: systemId) ?? .unknown,
+                                         usedArray : usedArray,
+                                         systemInfo : systemInfo,
+                                         averageSNR : average)
+                                         
+                                         
     }
     
     public func isConnected() -> Bool {

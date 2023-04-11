@@ -42,24 +42,6 @@
 		A74C76521FA312DC00EE6E58 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		A74C76551FA31D0700EE6E58 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		A783731D1FA94B1F0029BA1C /* WaitingToConnectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaitingToConnectView.swift; sourceTree = "<group>"; };
-		A79E3DD41FA6BB750041CB5C /* XGPSSample-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "XGPSSample-Bridging-Header.h"; sourceTree = "<group>"; };
-		A79E3DD51FA6BB760041CB5C /* Puck.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Puck.h; sourceTree = "<group>"; };
-		A79E3DD61FA6BB760041CB5C /* Puck.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Puck.m; sourceTree = "<group>"; };
-		A7BE86712117ED4800C00BD2 /* Puck+XGPS500.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "Puck+XGPS500.h"; sourceTree = "<group>"; };
-		A7BE86722117ED4800C00BD2 /* Puck+XGPS500.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "Puck+XGPS500.m"; sourceTree = "<group>"; };
-		A7BE86732117ED4900C00BD2 /* Puck+XGPS160.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "Puck+XGPS160.m"; sourceTree = "<group>"; };
-		A7BE86742117ED4900C00BD2 /* Puck+XGPS160.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "Puck+XGPS160.h"; sourceTree = "<group>"; };
-		A7BE86772117ED6F00C00BD2 /* CommonUtil.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CommonUtil.m; sourceTree = "<group>"; };
-		A7BE86782117ED7000C00BD2 /* CommonUtil.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CommonUtil.h; sourceTree = "<group>"; };
-		A7BE867A2117ED8400C00BD2 /* CommonValue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CommonValue.h; sourceTree = "<group>"; };
-		A7BE867B2117ED8400C00BD2 /* CommonValue.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CommonValue.m; sourceTree = "<group>"; };
-		A7BE867D2117ED9F00C00BD2 /* TripLog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TripLog.h; sourceTree = "<group>"; };
-		A7BE867E2117EDB800C00BD2 /* xgps500def.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xgps500def.h; sourceTree = "<group>"; };
-		A7BE867F2117EDB800C00BD2 /* xgps160def.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xgps160def.h; sourceTree = "<group>"; };
-		A7BE86802117EDC700C00BD2 /* xgpscommand.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xgpscommand.h; sourceTree = "<group>"; };
-		A7BE86842117EE1100C00BD2 /* ntripclient.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ntripclient.c; sourceTree = "<group>"; };
-		A7CE8B991FA7223D0053B8AD /* Definitions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Definitions.swift; sourceTree = "<group>"; };
-		A7EABEF72703F96B005CA131 /* LogData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LogData.swift; sourceTree = "<group>"; };
 		BA00E1FD24B610160037233E /*  */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ""; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -76,14 +58,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0D24A50D275862A200D3E90A /* Recovered References */ = {
-			isa = PBXGroup;
-			children = (
-				A7BE86842117EE1100C00BD2 /* ntripclient.c */,
-			);
-			name = "Recovered References";
-			sourceTree = "<group>";
-		};
 		A74C762E1FA30D4A00EE6E58 = {
 			isa = PBXGroup;
 			children = (
@@ -91,7 +65,6 @@
 				A74C76391FA30D4A00EE6E58 /* XGPSSample */,
 				A74C76381FA30D4A00EE6E58 /* Products */,
 				BA00E1FE24B610610037233E /* Frameworks */,
-				0D24A50D275862A200D3E90A /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -128,23 +101,6 @@
 		BA00E1FE24B610610037233E /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				A7EABEF72703F96B005CA131 /* LogData.swift */,
-				A7BE86802117EDC700C00BD2 /* xgpscommand.h */,
-				A7BE867F2117EDB800C00BD2 /* xgps160def.h */,
-				A7BE867E2117EDB800C00BD2 /* xgps500def.h */,
-				A7BE867D2117ED9F00C00BD2 /* TripLog.h */,
-				A7BE867A2117ED8400C00BD2 /* CommonValue.h */,
-				A7BE867B2117ED8400C00BD2 /* CommonValue.m */,
-				A7BE86782117ED7000C00BD2 /* CommonUtil.h */,
-				A7BE86772117ED6F00C00BD2 /* CommonUtil.m */,
-				A7BE86742117ED4900C00BD2 /* Puck+XGPS160.h */,
-				A7BE86732117ED4900C00BD2 /* Puck+XGPS160.m */,
-				A7BE86712117ED4800C00BD2 /* Puck+XGPS500.h */,
-				A7BE86722117ED4800C00BD2 /* Puck+XGPS500.m */,
-				A7CE8B991FA7223D0053B8AD /* Definitions.swift */,
-				A79E3DD51FA6BB760041CB5C /* Puck.h */,
-				A79E3DD61FA6BB760041CB5C /* Puck.m */,
-				A79E3DD41FA6BB750041CB5C /* XGPSSample-Bridging-Header.h */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -332,6 +288,7 @@
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 4.0;
 			};
 			name = Debug;
 		};
@@ -385,6 +342,7 @@
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 4.0;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;

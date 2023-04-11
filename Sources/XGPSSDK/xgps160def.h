@@ -28,7 +28,7 @@
 
 
 #define MaxRecentDevices    5
-
+#define EntriesPerBlock    185
 
 
 typedef struct {

@@ -12,7 +12,7 @@
 extern int stop;
 extern int sigstop;
 extern int isUsingNtrip;
-extern char* ggaSentence;
+extern char ggaSentence[200];
 
 void ntripMountPoints (void *self, char *buffer, int buffLen);
 void ntripDataWrite (void *object, char *buffer, int buffLen, int error);

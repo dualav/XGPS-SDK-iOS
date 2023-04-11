@@ -27,4 +27,3 @@ public struct Definitions {
     public static let DEBUG_CRC_CHECK = false
  
 }
-

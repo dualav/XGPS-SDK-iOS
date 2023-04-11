@@ -63,13 +63,14 @@
 #define TIME_RESOLUTION 125
 
 #define MAXDATASIZE 1000 /* max number of bytes we can get at once */
+#define MAXRECEIVESIZE 256
 
 /* CVS revision and version */
 static char revisionstr[] = "$Revision: 1.50 $";
 static char datestr[]     = "$Date: 2009/06/08 14:07:22 $";
 
 int isUsingNtrip = 0;
-char* ggaSentence = NULL;
+char ggaSentence[200] = {0,};
 enum MODE { HTTP = 1, RTSP = 2, NTRIP1 = 3, AUTO = 4, UDP = 5, END };
 
 struct Args
@@ -140,7 +141,7 @@ static void sighandler_alarm(int sig)
   if(!sigstop)
     fprintf(stderr, "ERROR: more than %d seconds no activity\n", ALARMTIME);
   else
-    fprintf(stderr, "ERROR: user break\n");
+    fprintf(stderr, "ERROR: user break %d\n", sig);
 //  exit(1);
 }
 
@@ -410,9 +411,9 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
     setbuf(stdin, 0);
     setbuf(stderr, 0);
 #ifndef WINDOWSVERSION
-    signal(SIGALRM,sighandler_alarm);
-    signal(SIGINT,sighandler_int);
-    alarm(ALARMTIME);
+//    signal(SIGALRM,sighandler_alarm);
+//    signal(SIGINT,sighandler_int);
+//    alarm(ALARMTIME);
 #else
     WSADATA wsaData;
     if(WSAStartup(MAKEWORD(1,1),&wsaData))
@@ -479,7 +480,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                 sleeptime = 1;
             }
 #ifndef WINDOWSVERSION
-            alarm(ALARMTIME);
+//            alarm(ALARMTIME);
 #endif
             if(args.proxyhost)
             {
@@ -508,6 +509,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                 server = args.server;
                 port = args.port;
             }
+
             if(!stop && !error)
             {
                 memset(&their_addr, 0, sizeof(struct sockaddr_in));
@@ -781,7 +783,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                         }
                                         i = recv(sockfd, rtpbuf, sizeof(rtpbuf), 0);
 #ifndef WINDOWSVERSION
-                                        alarm(ALARMTIME);
+//                                        alarm(ALARMTIME);
 #endif
                                         if(i >= 12 && (unsigned char)rtpbuf[0] == (2 << 6)
                                            && rtpbuf[1] >= 96 && rtpbuf[1] <= 98)
@@ -1117,7 +1119,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                             i = recvfrom(sockudp, rtpbuffer, sizeof(rtpbuffer), 0,
                                                          (struct sockaddr*) &addrRTP, &len);
 #ifndef WINDOWSVERSION
-                                            alarm(ALARMTIME);
+//                                            alarm(ALARMTIME);
 #endif
                                             if(i >= 12+1 && (unsigned char)rtpbuffer[0] == (2 << 6) && rtpbuffer[1] == 0x60)
                                             {
@@ -1321,10 +1323,10 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                             int chunksize = 0;
                             
                             while(!stop && !error &&
-                                  (numbytes=recv(sockfd, buf, MAXDATASIZE-1, 0)) > 0)
+                                  (numbytes=recv(sockfd, buf, MAXRECEIVESIZE-1, 0)) > 0)
                             {
 #ifndef WINDOWSVERSION
-                                alarm(ALARMTIME);
+//                                alarm(ALARMTIME);
 #endif
                                 if(!k)
                                 {
@@ -1471,7 +1473,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                         starttime = time(0);
                                         lastout = starttime;
                                     }
-                                    if(!stop && ggaSentence != NULL && strlen(ggaSentence) > 0 && strlen(ggaSentence) < 200)
+                                    if(!stop && strlen(ggaSentence) > 0 && strlen(ggaSentence) < 200)
                                     {
                                         strcpy(nmeabuffer, ggaSentence);
                                         nmeabufpos = strlen(nmeabuffer);
@@ -1485,7 +1487,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                         }
                                         fprintf(stderr, "send nmea sentence in\n");
                                         nmeabufpos = 0;
-                                        ggaSentence = NULL;
+                                        strcpy(ggaSentence, "");
                                     }
                                     if(args.serdevice && !stop)
                                     {
@@ -1558,6 +1560,8 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                     }
                                 }
                             }
+                            fprintf(stderr, "exit while loop %d\n", numbytes);
+                            ntripDataWrite (object, "socket closed", 14, 2);
                         }
                         else
                         {
@@ -1565,7 +1569,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                             while(!stop && (numbytes=recv(sockfd, buf, MAXDATASIZE-1, 0)) > 0)
                             {
 #ifndef WINDOWSVERSION
-                                alarm(ALARMTIME);
+//                                alarm(ALARMTIME);
 #endif
 //                                fwrite(buf, (size_t)numbytes, 1, stdout);
                                 ntripMountPoints (object, buf, numbytes);

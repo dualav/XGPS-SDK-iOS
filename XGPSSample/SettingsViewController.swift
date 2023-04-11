@@ -10,6 +10,26 @@ import UIKit
 import XGPSSDKSwift
 
 class SettingsViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, XGPSDelegate, SettingDetailDelegate {
+    func didUpdateSatelliteData(systemId: XGPSSDKSwift.GnssSystemId, usedArray: NSArray, systemInfo: NSDictionary, averageSNR: Int) {
+        
+    }
+    
+    func didUpdateGpsInfo(modelNumber: String, isCharging: Bool, betteryLevel: Float) {
+        
+    }
+    
+    func didUpdateSettings() {
+        
+    }
+    
+    func didUpdatePositionData(fixType: Int, latitude: Double, longitude: Double, altitude: Float, speedAndCourseIsValid: Bool, speed: Float, heading: Float, utcTime: String, waas: Bool, dgps: Bool) {
+        
+    }
+    
+    func didUpdateSatelliteData(systemId: XGPSSDKSwift.GnssSystemId) {
+        
+    }
+    
     static let KEY_SPEED_UNIT = "Show speed in"
     static let KEY_ALTITUDE_UNIT = "Show altitude in"
     static let KEY_POSITION_UNIT = "Display position as"
@@ -79,7 +99,7 @@ class SettingsViewController: UIViewController, UITableViewDelegate, UITableView
                 items = items150
                 section = section150
             }
-            else if title.contains(XGPSManager.XGPS160) {
+            else {
                 items = items160
                 section = section160
             }

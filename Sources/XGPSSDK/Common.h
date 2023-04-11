@@ -30,8 +30,11 @@
 #define KEY_MODE @"key_mode"
 #define KEY_AUTO_MOUNTPOINT @"key_auto_mountpoint"
 #define KEY_MOUNT_POINT @"key_mount_point"
+#define KEY_MOUNT_POINT_LOCATION @"key_mount_point_location"
 
 #define KEY_DEVIATION @"key_deviation"
+
+#define KEY_NTRIP_SERVICE @"key_ntrip_service"
 
 #define TITLETEXT @"titleText"
 #define FILE_FORMAT @"file_format"
@@ -46,10 +49,12 @@
 
 #define XGPS_160 @"XGPS160"
 #define XGPS_150 @"XGPS150"
+#define XGPS_360 @"XGPS360"
 #define XGPS_500 @"XGPS500"
 
 #define ABOUT_XGPS_160 @"If you own an XGPS160 Universal Bluetooth GPS Receiver from Dual Electronics, this app will tell you status information about your device, including whether it has determined your location or if it is still searching for satellite signals."
 #define ABOUT_XGPS_150 @"If you own an XGPS150 Universal Bluetooth GPS Receiver from Dual Electronics, this app will tell you status information about your device, including whether it has determined your location or if it is still searching for satellite signals."
+#define ABOUT_XGPS_360 @"If you own an XGPS360 Precision Bluetooth GPS Receiver from Dual Electronics, this app will tell you status information about your device, including whether it has determined your location or if it is still searching for satellite signals."
 #define ABOUT_XGPS_500 @"If you own an XGPS500 Precision Bluetooth GPS Receiver from Dual Electronics, this app will tell you status information about your device, including whether it has determined your location or if it is still searching for satellite signals."
 
 
@@ -93,5 +98,20 @@ enum {
     SCALE_MAX
 };
 
+enum GPS_MODULE {
+    GPS_UNKNOWN = 0,
+    GPS_UBLOX = 1,
+    GPS_SKYTRAQ = 2,
+    GPS_MTK = 3
+};
 
-
+enum GNSS_SYSTEM_ID {
+    GNSSSYSTEMID_GPS = 1,
+    GNSSSYSTEMID_GLONASS = 2,
+    GNSSSYSTEMID_GALILEO = 3,
+    GNSSSYSTEMID_BEIDOU = 4,
+    GNSSSYSTEMID_QZSS = 5,
+    GNSSSYSTEMID_NAVIC = 6,
+    GNSSSYSTEMID_UNKNOWN = 7,
+    GNSSSYSTEMID_MAX = 6
+};

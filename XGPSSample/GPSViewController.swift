@@ -10,6 +10,10 @@ import UIKit
 import XGPSSDKSwift
 
 class GPSViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, XGPSDelegate {
+    func didUpdateSettings() {
+        
+    }
+    
     static let KEY_CONNECTION = "Connection"
     static let KEY_BATTERY = "Battery level"
     static let KEY_LATITUDE = "Latitude"
@@ -19,13 +23,13 @@ class GPSViewController: UIViewController, UITableViewDelegate, UITableViewDataS
     static let KEY_SPEED = "Speed"
     static let KEY_UTC = "UTC Time"
     static let KEY_WAAS = "WAAS Active"
-    static let KEY_VIEW = "# in view"
-    static let KEY_USE = "# in use"
+    static let KEY_AVERAGE = "Average SNR"
+    static let KEY_VIEW = "# in view "
+    static let KEY_USE = "# in use "
     static let KEY_GLONASS_VIEW = "# in view(GLONASS)"
     static let KEY_GLONASS_USE = "# in use(GLONASS)"
-    let section150 = ["Device Status", "GPS Info.", "GPS Satellites"]
-    let section160 = ["Device Status", "GPS Info.", "GPS Satellites", "GLONASS Satellites"]
-    let items150 = [[KEY_CONNECTION, KEY_BATTERY], [KEY_LATITUDE, KEY_LONGITUDE, KEY_ALTITUDE, KEY_HEADING, KEY_SPEED, KEY_UTC, KEY_WAAS], [KEY_VIEW, KEY_USE]]
+    let section = ["Device Status", "GPS Info.", "Satellites"]
+    var items = [[KEY_CONNECTION, KEY_BATTERY], [KEY_LATITUDE, KEY_LONGITUDE, KEY_ALTITUDE, KEY_HEADING, KEY_SPEED, KEY_UTC, KEY_WAAS], [KEY_AVERAGE]]
     let items160 = [[KEY_CONNECTION, KEY_BATTERY], [KEY_LATITUDE, KEY_LONGITUDE, KEY_ALTITUDE, KEY_HEADING, KEY_SPEED, KEY_UTC, KEY_WAAS], [KEY_VIEW, KEY_USE], [KEY_GLONASS_VIEW, KEY_GLONASS_USE]]
 
     let appDelegate = AppDelegate.getDelegate()
@@ -35,8 +39,6 @@ class GPSViewController: UIViewController, UITableViewDelegate, UITableViewDataS
     @IBOutlet weak var statusTableView: UITableView!
     var waitingView: WaitingToConnectView!
    
-    var section:[String] = []
-    var items:[[String]] = [[]]
     var itemValues:[String:String] = [:]
     var connectedFlasher : Bool = false
     override func viewDidLoad() {
@@ -71,14 +73,6 @@ class GPSViewController: UIViewController, UITableViewDelegate, UITableViewDataS
     func initializeObject() {
         if let title = xGpsManager.currentModel {
             self.navigationController?.navigationBar.topItem?.title = title
-            if title.contains(XGPSManager.XGPS150) {
-                items = items150
-                section = section150
-            }
-            else if title.contains(XGPSManager.XGPS160) {
-                items = items160
-                section = section160
-            }
             waitingView.isHidden = true
         }
         clearItemValues()
@@ -106,6 +100,9 @@ class GPSViewController: UIViewController, UITableViewDelegate, UITableViewDataS
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // #warning Incomplete implementation, return the number of rows
+        if (section >= self.items.count) {
+            return 0
+        }
         
         return self.items[section].count
         
@@ -144,7 +141,6 @@ class GPSViewController: UIViewController, UITableViewDelegate, UITableViewDataS
     }
     
     func didUpdateGpsInfo(modelNumber: String, isCharging: Bool, betteryLevel: Float) {
-//        print("didUpdateGpsInfo : \(betteryLevel)")
         var appendString = ""
         if connectedFlasher {
             appendString = " _"
@@ -162,15 +158,13 @@ class GPSViewController: UIViewController, UITableViewDelegate, UITableViewDataS
         statusTableView.reloadData()
     }
     
-    func didUpdatePositionData(fixType: Int, latitude:Float, longitude: Float, altitude: Float,
+    func didUpdatePositionData(fixType: Int, latitude:Double, longitude: Double, altitude: Float,
                                speedAndCourseIsValid:Bool, speed: Float, heading: Float,
-                               utcTime: String, waas: Bool,
-                               satellitesInView:Int, satellitesInUse: Int,
-                               glonassInView: Int, glonassInUse: Int) {
+                               utcTime: String, waas: Bool, dgps: Bool) {
         
         if fixType > 1 {   // 1 = Fix not available, 2 = 2D fix, 3 = 3D fix
-            itemValues[GPSViewController.KEY_LATITUDE] = String(latitude) + "˚"
-            itemValues[GPSViewController.KEY_LONGITUDE] = String(longitude) + "˚"
+            itemValues[GPSViewController.KEY_LATITUDE] = String(format: "%.2f", latitude) + "˚"
+            itemValues[GPSViewController.KEY_LONGITUDE] = String(format: "%.2f", longitude) + "˚"
             itemValues[GPSViewController.KEY_ALTITUDE] = "Waiting more"
             itemValues[GPSViewController.KEY_UTC] = utcTime
             if waas {
@@ -179,11 +173,6 @@ class GPSViewController: UIViewController, UITableViewDelegate, UITableViewDataS
             else {
                 itemValues[GPSViewController.KEY_WAAS] = "No"
             }
-            itemValues[GPSViewController.KEY_VIEW] = String(satellitesInView)
-            itemValues[GPSViewController.KEY_USE] = String(satellitesInUse)
-            itemValues[GPSViewController.KEY_GLONASS_VIEW] = String(glonassInView)
-            itemValues[GPSViewController.KEY_GLONASS_USE] = String(glonassInUse)
-            
             if fixType == 3 {
                 itemValues[GPSViewController.KEY_ALTITUDE] = String(altitude) + " m"
             }
@@ -197,6 +186,48 @@ class GPSViewController: UIViewController, UITableViewDelegate, UITableViewDataS
                 itemValues[GPSViewController.KEY_HEADING] = "N/A"
             }
         }
+    }
+    
+    
+    func getSystemName(forRawValue rawValue: Int) -> String {
+        if let name = GnssSystemId(rawValue: rawValue) {
+            return String(format: "\(name)")
+        }
+        return "UNKNOWN"
+    }
+    
+    func didUpdateSatelliteData(systemId: GnssSystemId,
+                                usedArray : NSArray,
+                                systemInfo : NSDictionary,
+                                averageSNR : Int) {
+       
+        let systemName = getSystemName(forRawValue: systemId.rawValue)
+        var satNums:[Int] = []
+        for signalId in systemInfo.allKeys {
+            let dictInfo = systemInfo.object(forKey: signalId) as! NSDictionary
+            for key in dictInfo.allKeys as! [Int] { // key means sat num
+                if !satNums.contains(key) {
+                    satNums.append(key)
+                }
+            }
+        }
+        for item in items[2] {
+            if (item.contains(systemName)) {
+                if (item.contains(GPSViewController.KEY_VIEW)) {
+                    itemValues["\(GPSViewController.KEY_VIEW) \(systemName)"] = String(satNums.count)
+                } else if (item.contains(GPSViewController.KEY_USE)) {
+                    itemValues["\(GPSViewController.KEY_USE) \(systemName)"] = String(usedArray.count)
+                }
+            } else if (items[2].filter { $0.contains(systemName) }.count == 0) {
+                items[2].append("\(GPSViewController.KEY_VIEW) \(systemName)")
+                items[2].append("\(GPSViewController.KEY_USE) \(systemName)")
+                itemValues["\(GPSViewController.KEY_VIEW) \(systemName)"] = String(satNums.count)
+                itemValues["\(GPSViewController.KEY_USE) \(systemName)"] = String(usedArray.count)
+            } else if (item.contains(GPSViewController.KEY_AVERAGE)) {
+                itemValues[GPSViewController.KEY_AVERAGE] = String(averageSNR)
+            }
+        }
+
     }
 }
 

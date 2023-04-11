@@ -110,6 +110,7 @@
 @synthesize isCharging;
 @synthesize batteryVoltage;
 @synthesize serialNumber;
+@synthesize gpsModule;
 @synthesize firmwareRev;
 @synthesize alt, latitude, longitude;
 @synthesize utc;
@@ -127,12 +128,15 @@
 @synthesize lonDegMinDir;
 @synthesize satsUsedInPosCalc;
 @synthesize satsUsedInPosCalcGlonass;
+@synthesize satellitesUsedArray;
+@synthesize satellitesInfoArray;
 @synthesize dictOfSatInfo, dictOfSatInfoGlonass;
 @synthesize coordinates;
 //@synthesize accessory = _accessory;
 //@synthesize protocolString = _protocolString;
 @synthesize notificationType;
 @synthesize logListData;
+@synthesize ntripQueue;
 @synthesize logBulkDic;
 @synthesize fixType;
 @synthesize numOfSatInUse;
@@ -186,7 +190,9 @@ uint8_t		    cfgLogInterval;
 uint16_t		cfgLogBlock;
 uint16_t		cfgLogOffset;
 
+uint16_t    ggaReceivedCount = 0;
 
+NSTimer *timeoutTimer = nil;
 
 #pragma mark - Application lifecycle
 - (id)init
@@ -197,10 +203,12 @@ uint16_t		cfgLogOffset;
         self.logBulkDic = [[NSMutableArray alloc]init];
         logBulkRecodeCnt = 0;
         self.logListData = [[NSMutableArray alloc]init];
+        self.ntripQueue = [[NSMutableArray alloc] init];
         self.isPaired = NO;
         self.isConnected = NO;
         self.isCharging = NO;
         self.isDGPS = NO;
+        self.gpsModule = GPS_UNKNOWN;
         self.isRunningNtrip = NO;
         self.batteryVoltage = 0.0f;
         self.serialNumber = [[NSMutableString alloc] initWithString:@""];
@@ -209,6 +217,7 @@ uint16_t		cfgLogOffset;
         self.mountPoint = @"";
         self.ntripErrorMessage = @"";
         self.mountPointList = [[NSMutableArray alloc] init];
+        self.mountPointDistList = [[NSMutableArray alloc] init];
         self.latitude = 0.0;
         self.longitude = 0.0;
         self.alt = 0.0;
@@ -216,7 +225,6 @@ uint16_t		cfgLogOffset;
         self.numOfSatInUse = 0;
         self.numOfSatInUseGlonass = 0;
         self.numOfSatInView = 0;
-        self.numOfSatInViewGlonass = 0;
         self.hdop = 0.0;
         self.vdop = 0.0;
         self.pdop = 0.0;
@@ -231,7 +239,13 @@ uint16_t		cfgLogOffset;
         self.satsUsedInPosCalcGlonass = [[NSMutableArray alloc] init];
         self.dictOfSatInfo = [[NSMutableDictionary alloc] init];
         self.dictOfSatInfoGlonass = [[NSMutableDictionary alloc]init];
-        self.sentenceGGA = @"";
+        self.satellitesUsedArray = [[NSMutableArray alloc] init];
+        self.satellitesInfoArray = [[NSMutableArray alloc] init];
+//        self.sentenceGGA = @"";
+        for (NSUInteger i = 0; i < GNSSSYSTEMID_MAX; i++) {
+            [satellitesUsedArray addObject:[NSNull null]];
+            [satellitesInfoArray addObject:[NSNull null]];
+        }
         self.ntripReceived = 0;
         
         
@@ -271,6 +285,7 @@ uint16_t		cfgLogOffset;
     [self.logBulkDic removeAllObjects];
     logBulkRecodeCnt = 0;
     [self.logListData removeAllObjects];
+    [self.ntripQueue removeAllObjects];
     //    self.isPaired = NO;
     //    self.isConnected = NO;
     //    self.isCharging = NO;
@@ -283,6 +298,7 @@ uint16_t		cfgLogOffset;
     self.mountPoint = @"";
     self.ntripErrorMessage = @"";
     [self.mountPointList removeAllObjects];
+    [self.mountPointDistList removeAllObjects];
     self.latitude = 0.0;
     self.longitude = 0.0;
     self.alt = 0.0;
@@ -290,7 +306,6 @@ uint16_t		cfgLogOffset;
     self.numOfSatInUse = 0;
     self.numOfSatInUseGlonass = 0;
     self.numOfSatInView = 0;
-    self.numOfSatInViewGlonass = 0;
     self.hdop = 0.0;
     self.vdop = 0.0;
     self.pdop = 0.0;
@@ -443,9 +458,12 @@ uint16_t		cfgLogOffset;
         case NSStreamEventHasBytesAvailable:
         {
             uint32_t            len = 0;
-            static UInt8        buffer[kBufferSize];
+            static UInt8        buffer[kBufferSize] = {0,};
             
             len = (uint32_t) [[_session inputStream] read:buffer maxLength:kBufferSize];
+            buffer[len] = 0;
+//            if (len > 0)
+//                NSLog(@"##########%s#########", buffer);
             if( 0 < len && len <= kBufferSize ) {
                 [self handleInputStream :(const char* )buffer :len];
             }
@@ -480,6 +498,7 @@ uint16_t		cfgLogOffset;
     if (_session == nil)
         return;
 
+    [self stopNtripNetwork];    // for 500
 	NSLog(@"closeSession");
     [[_session inputStream] close];
     [[_session inputStream] removeFromRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
@@ -494,9 +513,6 @@ uint16_t		cfgLogOffset;
 //    ReleaseObject(_session);
     self.isConnected = NO;
     [self clearVariable];
-    
-    [self stopNtripNetwork];    // for 500
-    
 //    [self setupPuck:nil withProtocolString:nil];
 }
 
@@ -524,8 +540,9 @@ uint16_t		cfgLogOffset;
         //[_session autorelease]; DO NOT AUTORELEASE - THIS FAILS UNDER 6.0
         
         self.isConnected = YES;
+        stop = 0;
         bool isUsingEnable = [[NSUserDefaults standardUserDefaults] boolForKey:KEY_NETWORK];
-        if (isUsingEnable && [self.modelNumber isEqualToString:XGPS_500]) {
+        if (isUsingEnable && ([self.modelNumber isEqualToString:XGPS_500] || [self.modelNumber isEqualToString:XGPS_360])) {
             NSObject *object = [[NSUserDefaults standardUserDefaults] valueForKey:KEY_AUTO_MOUNTPOINT];
             NSString *mountPoint = NULL;
             if (object != nil) {
@@ -559,6 +576,43 @@ uint16_t		cfgLogOffset;
     _protocolString = [protocolString copy];
 }
 
+- (void)startDataCheckTimer
+{
+    if (timeoutTimer == nil) {
+        timeoutTimer = [NSTimer scheduledTimerWithTimeInterval:5
+                                                             target:self
+                                                           selector:@selector(timeoutHandler:)
+                                                           userInfo:nil
+                                                            repeats:YES]; // 3초
+    }
+}
+
+- (void)stopDataCheckTimer
+{
+    if (timeoutTimer != nil) {
+        [timeoutTimer invalidate];
+        timeoutTimer = nil;
+    }
+}
+
+-(void)timeoutHandler:(NSTimer*) timer
+{
+    NSLog(@"timeout %d, %d", self.isConnected, ggaReceivedCount);
+    if (self.isConnected == NO)
+        return;
+    if (ggaReceivedCount > 0) {
+        ggaReceivedCount = 0;
+    }
+    else {
+        [self closeSession];
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+            if ([self isPuckAnAvailableAccessory] == YES)
+                [self openSession];
+        });
+
+    }
+}
+
 - (void)getAccessory:(EAAccessory *)accessory
 {
     NSLog(@"accessory : %@", [accessory name]);
@@ -566,7 +620,7 @@ uint16_t		cfgLogOffset;
     
     self.supportBinCommand = true;
     self.supportOldCommand = true;
-    self.firmwareRev = @"2.5.3"; //[accessory firmwareRevision];
+    self.firmwareRev = [accessory firmwareRevision];
     
     if([self.serialNumber hasPrefix:@"XGPS160"]) {
         self.modelNumber = @"XGPS160";
@@ -592,6 +646,12 @@ uint16_t		cfgLogOffset;
     }
     else if ([self.serialNumber  hasPrefix:@"XGPS500"]) {
         self.modelNumber = @"XGPS500";
+    }
+    else if ([self.serialNumber  hasPrefix:@"XGPS360"]) {
+        self.modelNumber = @"XGPS360";
+    }
+    else if ([self.serialNumber  hasPrefix:@"DashPro"]) {
+        self.modelNumber = @"XGPS360";
     }
     else
         self.modelNumber = @"";
@@ -749,63 +809,54 @@ static int hexStrToInt( const char *value, int len)
 - (NSInteger)avgUsableSatSNR
 {
     NSMutableArray *satData;
-    int sumSatStrength=0;
-    float avgSNR=0.0, avgSNRGlonass=0.0;
+    int sumSatStrength = 0, inUsedCount = 0;
     
-    if (numOfSatInUse == 0 && numOfSatInUseGlonass == 0) return 0.0f;    // error prevention
-    
-    // GPS 평균
-    for (NSNumber *sat in [dictOfSatInfo allKeys])
-    {
-        for (NSNumber *satInUse in satsUsedInPosCalc)
-        {
-            if ([sat intValue] == [satInUse intValue])
-            {
-                satData = [dictOfSatInfo objectForKey:sat];
-                sumSatStrength += [[satData objectAtIndex:2] intValue];
+    for (int i = 0; i < GNSSSYSTEMID_MAX; i++) {
+        // TODO : change to 2D array
+        NSMutableDictionary *systemInfo = satellitesInfoArray[i];
+        if ([systemInfo isEqual:[NSNull null]]) {
+            continue;
+        }
+        NSMutableDictionary *integratedDict = [[NSMutableDictionary alloc] init];
+        for(NSNumber *signal in [systemInfo allKeys]) {
+            NSMutableDictionary *dictionary = [systemInfo objectForKey:signal];
+            for (NSNumber *sat in [dictionary allKeys]) {
+                if ([integratedDict objectForKey:sat] == nil) {
+                    [integratedDict setObject:[dictionary objectForKey:sat] forKey:sat];
+                } else {
+                    NSArray *prevArray = [integratedDict objectForKey:sat];
+                    NSArray *currentArray = [dictionary objectForKey:sat];
+                    if (prevArray[2] < currentArray[2]) {
+                        [integratedDict setObject:[dictionary objectForKey:sat] forKey:sat];
+                    }
+                }
+            }
+        }
+
+        for(NSNumber *sat in [integratedDict allKeys]) {
+            for (NSNumber *satInUse in satellitesUsedArray[i]) {
+                if ([sat intValue] == [satInUse intValue]) {
+                    satData = [integratedDict objectForKey:sat];
+                    sumSatStrength += [[satData objectAtIndex:2] intValue];
+                }
             }
         }
     }
-    
-    avgSNR = (float)sumSatStrength / numOfSatInUse;
-    //NSLog(@"avgSNR  %f",avgSNR);
-    
-    if (isnan(avgSNR) != 0) avgSNR = 0.0;   // check: making sure all SNR values are valid
-    
-    // 글로나스 평균
-    sumSatStrength = 0;
-    for (NSNumber *sat in [dictOfSatInfoGlonass allKeys])
-    {
-        for (NSNumber *satInUse in satsUsedInPosCalcGlonass)
-        {
-            if ([sat intValue] == [satInUse intValue])
-            {
-                satData = [dictOfSatInfoGlonass objectForKey:sat];
-                sumSatStrength += [[satData objectAtIndex:2] intValue];
-            }
+    for (int i = 0; i < GNSSSYSTEMID_MAX; i++) {
+        NSMutableArray *usedArray = satellitesUsedArray[i];
+        if ([usedArray isEqual:[NSNull null]]) {
+            continue;
         }
+        inUsedCount += [usedArray count];
     }
-    avgSNRGlonass = (float)sumSatStrength / numOfSatInUseGlonass;
-    //NSLog(@"avgSNRGlonass   %f",avgSNRGlonass);
-    
-    NSInteger avgInt=0;
-    if (isnan(avgSNRGlonass) != 0)
-        avgSNRGlonass = 0;
-    
-    if (avgSNRGlonass == 0) {
-        avgInt = avgSNR;
-    }
-    else
-        avgInt = (avgSNR+avgSNRGlonass)/2;
-    
-    return avgInt;
+    return (float)sumSatStrength / inUsedCount;
 }
 
 
 bool NMEAVerifyChecksum( const char* data, int dataLen )
 {
     int        i;
-    uint8_t    cs = (int)'G';
+    uint8_t    cs = 0;
     uint8_t    vv = 0;
     uint8_t    ch;
     
@@ -828,19 +879,21 @@ bool NMEAVerifyChecksum( const char* data, int dataLen )
 {
     //NSLog(@"<IN> %s", pLine);
     if( Sentence[0] == '$' ) {
-        Sentence += 2;// skip '$G'
+        Sentence += 1;// skip '$'
     }
     if( !NMEAVerifyChecksum(Sentence, (int)SentenceLength) ) {
         NSLog(@"senetence checksum failed (%d) %02x", (int)SentenceLength, (uint8_t)Sentence[0]);
-        //NSLog(@"%s", Sentence);
         return;
     }
+    Sentence += 1;
     rxNmeaMessagesOK++;
 
     // Break the data into an array of elements
-    NSArray *elementsInSentence = [[NSString stringWithUTF8String:Sentence] componentsSeparatedByString:@","];
+    NSString *sep = @",*";
+    NSCharacterSet *set = [NSCharacterSet characterSetWithCharactersInString:sep];
+    NSArray *elementsInSentence = [[NSString stringWithUTF8String:Sentence] componentsSeparatedByCharactersInSet:set];
     
-    if ( elementsInSentence == nil || [elementsInSentence count] == 0 || [[elementsInSentence objectAtIndex:0] length] != 4 ) {
+    if ( elementsInSentence == nil || [elementsInSentence count] == 0 || ([[elementsInSentence objectAtIndex:0] length] != 4 && ![[elementsInSentence objectAtIndex:0] hasPrefix:@"GPS"]) ) {
         NSLog(@"senetence dropped");
         return;
     }
@@ -851,6 +904,7 @@ bool NMEAVerifyChecksum( const char* data, int dataLen )
         float   Alt;
 //        NSLog(@"<IN> %s", Sentence);
         // extract the altitude
+        ggaReceivedCount++;
         if ([elementsInSentence count] < 10)
             return;
         
@@ -863,18 +917,14 @@ bool NMEAVerifyChecksum( const char* data, int dataLen )
         self.isDGPS = ([[elementsInSentence objectAtIndex:6] intValue] == 2)? YES : NO;
         
         // trigger a notification to the view controllers that the satellite data has been updated
-//        dispatch_async(dispatch_get_main_queue(), ^{
-            [[NSNotificationCenter defaultCenter] postNotification:[NSNotification notificationWithName:@"PositionDataUpdated" object:self]];
-//        });
-        
-        if (self.sentenceGGA != nil)
-            self.sentenceGGA = [NSString stringWithFormat:@"$G%s", Sentence];
+        [[NSNotificationCenter defaultCenter] postNotification:[NSNotification notificationWithName:@"PositionDataUpdated" object:self]];
+        sprintf(ggaSentence, "$G%s", Sentence);
     }
     else if (strncmp((char *)Sentence, "PRMC", 4) == 0)
     {
-        if ([elementsInSentence count] != 13)
+        if ([elementsInSentence count] < 14)
         {
-            elementsInSentence = [[NSArray alloc]initWithObjects:@"",@"",@"",@"",@"",  @"",@"",@"",@"",@"",  @"",@"",@"",nil];
+            return;
         }
         
         if ([[elementsInSentence objectAtIndex:1] length] == 0)
@@ -910,7 +960,7 @@ bool NMEAVerifyChecksum( const char* data, int dataLen )
         // extract latitude info
         // ex:    "4124.8963, N" which equates to 41d 24.8963' N or 41d 24' 54" N
         
-        float mins=0;
+        double mins=0;
         int deg=0, offset=0;
         NSString *dir = @"-";
         const char *cString = "0";
@@ -930,17 +980,20 @@ bool NMEAVerifyChecksum( const char* data, int dataLen )
             deg = (int)(lat / 100);
             
             decimalPos = strchr(cString, '.');        // find the decimal point
-            offset = (int) (decimalPos - cString - 2);          // move the string point back two places from the decimal
-            cString += offset;
-            mins = atof(cString);                           // convert the shortened string to a float
-            
-            // capture the "N" or "S"
-            dir = [NSString stringWithFormat:@"%@", [elementsInSentence objectAtIndex:4]];
+            if (decimalPos != NULL) {
+                offset = (int) (decimalPos - cString - 2);          // move the string point back two places from the decimal
+                cString += offset;
+                mins = atof(cString);                           // convert the shortened string to a float
+
+                // capture the "N" or "S"
+                dir = [NSString stringWithFormat:@"%@", [elementsInSentence objectAtIndex:4]];
+            }
         }
         
         // self.latDegMinDir  초기화
         [self.latDegMinDir setArray:@[[NSNumber numberWithInt:deg],[NSNumber numberWithFloat:mins], dir, [NSString stringWithFormat:@"%s", cString]]];
-        self.latitude =  (float)(deg + mins / 60) * ([dir isEqualToString:@"N"]?1:-1);
+        mins = mins / 60.0;
+        self.latitude =  ((deg + mins) * ([dir isEqualToString:@"N"]?1.0:-1.0));
         
         deg = 0;
         mins = 0.0;
@@ -960,16 +1013,20 @@ bool NMEAVerifyChecksum( const char* data, int dataLen )
             deg = (int)(lon / 100);
             
             decimalPos = strchr(cString, '.');          // find the decimal point
-            offset = (int) (decimalPos - cString - 2);          // move the string point back two places from the decimal
-            cString += offset;
-            mins = atof(cString);                       // convert the shortened string to a float
-            
-            dir = [NSString stringWithFormat:@"%@", [elementsInSentence objectAtIndex:6]];        // capture the "E" or "W"
+            if (decimalPos != NULL) {
+                offset = (int) (decimalPos - cString - 2);          // move the string point back two places from the decimal
+                cString += offset;
+                mins = atof(cString);                       // convert the shortened string to a float
+
+                dir = [NSString stringWithFormat:@"%@", [elementsInSentence objectAtIndex:6]];
+                    // capture the "E" or "W"
+            }
         }
         
         // self.latDegMinDir  초기화
         [self.lonDegMinDir setArray:@[[NSNumber numberWithInt:deg],[NSNumber numberWithFloat:mins], dir, [NSString stringWithFormat:@"%s", cString]]];
-        self.longitude =  (float)(deg + mins / 60) * ([dir isEqualToString:@"E"]?1:-1);
+        mins = mins / 60.0;
+        self.longitude =  (deg + mins) * ([dir isEqualToString:@"E"]?1:-1);
         
         // Pull the speed information from the RMC sentence since this updates at the fast refresh rate in the Skytraq chipset
         if ([[elementsInSentence objectAtIndex:7] isEqualToString:@""])
@@ -997,81 +1054,71 @@ bool NMEAVerifyChecksum( const char* data, int dataLen )
         else
             self.trackTrue = [[elementsInSentence objectAtIndex:8] floatValue];
     }
-    
-    // 러시아 글로나스 위성 정보
-    else if (strncmp((char *)Sentence, "LGSV", 4) == 0)
+    // GSA
+    else if (strncmp((char *)(Sentence+1), "GSA", 3) == 0)
     {
-        //NSLog(@"러샤위성 %s",pLine);
-        
-        if (self.dictOfSatInfoGlonass == nil)
-            self.dictOfSatInfoGlonass = [[NSMutableDictionary alloc]init];
-        
-        self.numOfSatInViewGlonass = [[elementsInSentence objectAtIndex:3] intValue];
-        
-        if (self.numOfSatInViewGlonass == 0)
-        {
-            if ([self.dictOfSatInfoGlonass count])
-                [self.dictOfSatInfoGlonass removeAllObjects];
+        int systemId = 1; // default system : gps
+        if ([elementsInSentence count] < 18 ) {
+            return;
         }
-        else
-        {
-            if( [[elementsInSentence objectAtIndex:2] intValue] == 1 && [self.dictOfSatInfoGlonass count] ) {
-                [self.dictOfSatInfoGlonass removeAllObjects];
-            }
-            
-            NSNumber *satNum=0, *satElev=0, *satAzi=0, *satSNR=0, *inUse;
-            NSMutableArray *satInfo;
-            
-            // The number of satellites described in a sentence can vary up to 4.
-            int numOfSatsInSentence;
-            if ([elementsInSentence count] < 10)
-                numOfSatsInSentence = 1;
-            else if ([elementsInSentence count] < 14)
-                numOfSatsInSentence = 2;
-            else if ([elementsInSentence count] < 18)
-                numOfSatsInSentence = 3;
-            else
-                numOfSatsInSentence = 4;
-            
-            for (int i=0; i<numOfSatsInSentence; i++)
-            {
-                if ([elementsInSentence count] <= i*4 + 4 +3)
-                    break;
-                
-                int index = i*4 + 4;
-                inUse = [NSNumber numberWithBool:NO];
-                
-                satNum = [NSNumber numberWithInt:[[elementsInSentence objectAtIndex:index] intValue]];
-                satElev = [NSNumber numberWithInt:[[elementsInSentence objectAtIndex:(index+1)] intValue]];
-                satAzi = [NSNumber numberWithInt:[[elementsInSentence objectAtIndex:(index+2)] intValue]];
-                satSNR = [NSNumber numberWithFloat:[[elementsInSentence objectAtIndex:(index+3)] floatValue]];
-                
-                // On random occasions, either the data is bad or the parsing fails. Handle any not-a-number conditions.
-                if (isnan([satSNR floatValue]) != 0)
-                    satSNR = [NSNumber numberWithFloat:0.0];
-                
-                for (NSNumber *n in self.satsUsedInPosCalcGlonass)
-                {
-                    if ([n intValue] == [satNum intValue])
-                    {
-                        inUse = [NSNumber numberWithBool:YES];
-                        break;
-                    }
-                }
-                satInfo = [NSMutableArray arrayWithObjects:satAzi, satElev, satSNR, inUse, nil];
-                [self.dictOfSatInfoGlonass setObject:satInfo forKey:satNum]; //버그지점
-            }
+
+        // extract whether the fix type is 0=no fix, 1=2D fix or 2=3D fix
+        self.fixType = [[elementsInSentence objectAtIndex:2] intValue];
+        // extract PDOP
+        self.pdop = [[elementsInSentence objectAtIndex:15] floatValue];
+
+        // extract HDOP
+        self.hdop = [[elementsInSentence objectAtIndex:16] floatValue];
+
+        // extract VDOP
+        self.vdop = [[elementsInSentence objectAtIndex:17] floatValue];
+
+        if ([elementsInSentence count] > 19) {    // NMEA 0183 v4.11 version
+            systemId = [[elementsInSentence objectAtIndex:18] intValue];
+        } else if (*Sentence == 'N') {
+            systemId = 2;
         }
+
+        // extract the number of satellites used in the position fix calculation
+
+        if (systemId < 1) {
+            systemId = 1;
+        }
+        // 위성 감도 평균값
+        NSString *satInDOP;
+        NSMutableArray *satsInDOPCalc = [[NSMutableArray alloc] init];
+        for (int i=3; i<15; i++)
+        {
+            satInDOP = [elementsInSentence objectAtIndex:i];
+
+            if ([satInDOP length] > 0)
+                [satsInDOPCalc addObject:satInDOP];
+            satInDOP = nil;
+        }
+        self.satellitesUsedArray[systemId-1] = satsInDOPCalc;
+
+        //[satsInDOPCalc release];
+        satsInDOPCalc = nil;
+        // TODO : listener ??
     }
-    
-    // GPS 위성
-    else if (strncmp((char *)Sentence, "PGSV", 4) == 0)
+    // GSV
+    else if (strncmp((char *)(Sentence+1), "GSV", 3) == 0)
     {
+        int systemId = [self getSystemIdFromTalkId: *Sentence];
+        if (systemId < 1) {
+            systemId = 1;
+        }
+        if ([satellitesUsedArray[systemId-1] isEqual:[NSNull null]]) {
+            return;
+        }
+        int signalId = 0;
+        if ([elementsInSentence count] == 22) {
+            signalId = [[elementsInSentence objectAtIndex:20] intValue];
+        }
+        // TODO : change array or dictionary
         self.numOfSatInView = [[elementsInSentence objectAtIndex:3] intValue];
-        
-        if (self.dictOfSatInfo == nil)
-            self.dictOfSatInfo = [[NSMutableDictionary alloc]init];
-        
+
+
         if (self.numOfSatInView == 0)
         {
             if ([self.dictOfSatInfo count])
@@ -1084,7 +1131,7 @@ bool NMEAVerifyChecksum( const char* data, int dataLen )
             }
             NSNumber *satNum=0, *satElev=0, *satAzi=0, *satSNR=0, *inUse;
             NSMutableArray *satInfo;
-            
+
             // The number of satellites described in a sentence can vary up to 4.
             int numOfSatsInSentence;
             if ([elementsInSentence count] < 10)
@@ -1095,7 +1142,13 @@ bool NMEAVerifyChecksum( const char* data, int dataLen )
                 numOfSatsInSentence = 3;
             else
                 numOfSatsInSentence = 4;
-            
+
+            NSMutableDictionary *dictionary;
+            if (([satellitesInfoArray[systemId-1] isEqual:[NSNull null]] || [satellitesInfoArray[systemId-1] objectForKey:[NSNumber numberWithInt:signalId]] == nil) || [[elementsInSentence objectAtIndex:2] intValue] == 1) {
+                dictionary = [[NSMutableDictionary alloc] init];
+            } else {
+                dictionary = [satellitesInfoArray[systemId-1] objectForKey:[NSNumber numberWithInt:signalId]];
+            }
 
             for (int i=0; i<numOfSatsInSentence; i++)
             {
@@ -1104,21 +1157,23 @@ bool NMEAVerifyChecksum( const char* data, int dataLen )
 
                 int index = i*4 + 4;
                 inUse = [NSNumber numberWithBool:NO];
-                
+
                 satNum = [NSNumber numberWithInt:[[elementsInSentence objectAtIndex:index] intValue]];
                 satElev = [NSNumber numberWithInt:[[elementsInSentence objectAtIndex:(index+1)] intValue]];
                 satAzi = [NSNumber numberWithInt:[[elementsInSentence objectAtIndex:(index+2)] intValue]];
                 satSNR = [NSNumber numberWithFloat:[[elementsInSentence objectAtIndex:(index+3)] floatValue]];
-                
-                if( isnan([satSNR floatValue]) )
+
+                if( isnan([satSNR floatValue]) || satSNR == nil)
                     satSNR = [NSNumber numberWithFloat:0.0];
                 else if ([satSNR floatValue] > 50) {
                     //NSLog(@"Abnormal SNR %.1f in %s", [satSNR floatValue], pLine);
                     //return;
                     satSNR = [NSNumber numberWithFloat:50.0];
                 }
-                
-                for (NSNumber *n in self.satsUsedInPosCalc)
+                if (satNum == [NSNumber numberWithInt:0]) {
+                    break;
+                }
+                for (NSNumber *n in satellitesUsedArray[systemId-1])
                 {
                     if ([n intValue] == [satNum intValue])
                     {
@@ -1126,116 +1181,29 @@ bool NMEAVerifyChecksum( const char* data, int dataLen )
                         break;
                     }
                 }
-                
+
                 satInfo = [NSMutableArray arrayWithObjects:satAzi, satElev, satSNR, inUse, nil];
-                [self.dictOfSatInfo setObject:satInfo forKey:satNum]; //버그지점
+                [dictionary setObject:satInfo forKey:satNum];
             }
+            if ([satellitesInfoArray[systemId-1] isEqual:[NSNull null]] == YES) {
+                satellitesInfoArray[systemId-1] = [[NSMutableDictionary alloc] init];
+            }
+            [satellitesInfoArray[systemId-1] setObject:dictionary forKey:[NSNumber numberWithInt:signalId]];
         }
-        
+
         if ([[elementsInSentence objectAtIndex:2] intValue] == [[elementsInSentence objectAtIndex:1] intValue])
         {
             // Post a notification to the view controllers that the satellite data has been updated
-            NSNotification *satDataUpdated = [NSNotification notificationWithName:@"SatelliteDataUpdated" object:self];
+            NSDictionary *userInfo = @{@"systemId": @(systemId)};
+            NSNotification *satDataUpdated = [NSNotification notificationWithName:@"SatelliteDataUpdated" object:self userInfo:userInfo];
             [[NSNotificationCenter defaultCenter] postNotification:satDataUpdated];
         }
     }
-        
-    else if (strncmp((char *)Sentence, "NGSA", 4) == 0)
-    {
-        // 러샤위성 감도 평균값
-        if ([elementsInSentence count] != 18 ) {
-            elementsInSentence = [[NSArray alloc]initWithObjects:@"",@"",@"",@"",@"",
-                                   @"",@"",@"",@"",@"",    @"",@"",@"",@"",@"",
-                                   @"",@"",@"", nil];
-        }
-        
-        // extract whether the fix type is 0=no fix, 1=2D fix or 2=3D fix
-        self.fixType = [[elementsInSentence objectAtIndex:2] intValue];
-        
-        // extract PDOP
-        self.pdop = [[elementsInSentence objectAtIndex:15] floatValue];
 
-        // extract HDOP
-        self.hdop = [[elementsInSentence objectAtIndex:16] floatValue];
-        
-        // extract VDOP
-        self.vdop = [[elementsInSentence objectAtIndex:17] floatValue];
-        
-        // extract the number of satellites used in the position fix calculation
-        
-        // 위성 감도 평균값 내가 위한...
-        NSString *satInDOP;
-        NSMutableArray *satsInDOPCalc = [[NSMutableArray alloc] init];
-        for (int i=3; i<15; i++)
-        {
-            satInDOP = [elementsInSentence objectAtIndex:i];
-            if ([satInDOP length] > 0)
-                [satsInDOPCalc addObject:satInDOP];
-            satInDOP = nil;
-        }
-        self.numOfSatInUseGlonass = (int) [satsInDOPCalc count];
-        self.satsUsedInPosCalcGlonass = satsInDOPCalc;
-        
-        //[satsInDOPCalc release];
-        satsInDOPCalc = nil;
-    }
-    else if (strncmp((char *)Sentence, "PGSA", 4) == 0)
-    {
-        // 미국위성 감도 평균값
-        
-        if ([elementsInSentence count] != 18 ) {
-            elementsInSentence = [[NSArray alloc]initWithObjects:@"",@"",@"",@"",@"",
-                                   @"",@"",@"",@"",@"",    @"",@"",@"",@"",@"",
-                                   @"",@"",@"", nil];
-        }
-        
-        // extract whether the fix type is 0=no fix, 1=2D fix or 2=3D fix
-        self.fixType = [[elementsInSentence objectAtIndex:2] intValue];
-        
-        // extract PDOP
-        self.pdop = [[elementsInSentence objectAtIndex:15] floatValue];
-        
-        // extract HDOP
-        self.hdop = [[elementsInSentence objectAtIndex:16] floatValue];
-        
-        // extract VDOP
-        self.vdop = [[elementsInSentence objectAtIndex:17] floatValue];
-        
-        // extract the number of satellites used in the position fix calculation
-        
-        // 위성 감도 평균값 내기 위한...
-        NSString *satInDOP;
-        NSMutableArray *satsInDOPCalc = [[NSMutableArray alloc] init];
-        self.waasInUse = NO;
-        for (int i=3; i<15; i++)
-        {
-            satInDOP = [elementsInSentence objectAtIndex:i];
-            
-            if ([satInDOP length] > 0)
-                [satsInDOPCalc addObject:satInDOP];
-            if ([satInDOP intValue] > 32) self.waasInUse = YES;
-            satInDOP = nil;
-        }
-        self.numOfSatInUse = (int) [satsInDOPCalc count];
-        self.satsUsedInPosCalc = satsInDOPCalc;
-        
-        //[satsInDOPCalc release];
-        satsInDOPCalc = nil;
-    }
     else if (strncmp((char *)Sentence, "PPWR", 4) == 0) {
         //NSLog(@"PPWR");
     }
-//    else if (strncmp((char *)pLine, "PVTG", 4) == 0)
-//    {
-//    }
-//    else if ([[elementsInSentence objectAtIndex:0] isEqualToString:@"PGLL"])
-//    {
-//    }
-//    else
-//    {
-//    }
 }
-
 
 
 // We have fairly complex mixture for a data stream with com.dualav.xgps150 session.
@@ -1338,16 +1306,18 @@ bool NMEAVerifyChecksum( const char* data, int dataLen )
         }
         else if( rxSync == 6 )
         {
-            rxBuf[rxIdx++] = x;
-            
-            if( rxIdx == 6 ) {
-                rxBinLen = getU16L( &rxBuf[4] ) + 8;// +8 for UBX overhead
-            }
-            else if( rxIdx >= rxBinLen ) {
-                // do any necessory processing for UBX/RXM here
-                rxUbxMessages++;
-                //NSLog(@"UBX %d bytes", rxBinLen);
-                rxSync = 0;
+            if (rxIdx < kBufferSize * 2) {
+                rxBuf[rxIdx++] = x;
+
+                if( rxIdx == 6 ) {
+                    rxBinLen = getU16L( &rxBuf[4] ) + 8;// +8 for UBX overhead
+                }
+                else if( rxIdx >= rxBinLen ) {
+                    // do any necessory processing for UBX/RXM here
+                    rxUbxMessages++;
+                    //NSLog(@"UBX %d bytes", rxBinLen);
+                    rxSync = 0;
+                }
             }
         }
         else
@@ -1428,7 +1398,7 @@ bool NMEAVerifyChecksum( const char* data, int dataLen )
                 break;
             }
         }
-        else if ([self.serialNumber containsString:XGPS_500]) {
+        else if ([self.serialNumber containsString:XGPS_500] || [self.serialNumber containsString:XGPS_360]) { // TODO : check
             // XGPS500 does not send refresh rate with XCFG. should check cmd160_getSettings.
         }
         else {
@@ -1468,6 +1438,13 @@ bool NMEAVerifyChecksum( const char* data, int dataLen )
         // get charging status flag
         self.isCharging = (data[5] & 0x04)? YES : NO;
         
+        if (data[5] & 0x40)
+            self.gpsModule = GPS_SKYTRAQ;
+        else if (data[5] & 0x20)
+            self.gpsModule = GPS_UBLOX;
+        else
+            self.gpsModule = GPS_MTK;
+
         // decode charger connect flag
         if( data[3] & 0x40 )
             dctxt = "charger connected";
@@ -1603,7 +1580,7 @@ uint32_t getU32M( uint8_t* buf )
                         break;
                     }
                 }
-                else if ([self.serialNumber containsString:XGPS_500]) {
+                else if ([self.serialNumber containsString:XGPS_500] || [self.serialNumber containsString:XGPS_360]) { // TODO : check
                     [self handle500getSettingsRsp: Pkt: PktLen];
                 }
                 NSNotification *notification = [NSNotification notificationWithName:@"updateSettings" object:self];
@@ -1675,8 +1652,7 @@ uint32_t getU32M( uint8_t* buf )
 {
     NSInteger written;
     
-    if( _session && [_session outputStream] )
-    {
+    if( _session && [_session outputStream]) {
         if( [[_session outputStream] hasSpaceAvailable] ) {
             written = [[_session outputStream] write: buf maxLength:bufLen];
         }
@@ -1751,15 +1727,6 @@ uint32_t getU32M( uint8_t* buf )
     return TRUE;
 }
 
-
-
-- (bool) fwupdateCancel
-{
-    // return true if the operation can be stopped, after stopping it
-    return false;
-}
-
-
 - (void)getSettingValue
 {
     const uint8_t data[5] = { 'Q', '0', '0', '0', 0x0a };
@@ -1796,6 +1763,19 @@ uint32_t getU32M( uint8_t* buf )
     cfgGpsSettings = (cfgGpsSettings & 0xF0) | ((uint8_t)value);
     
     [self sendSetConfigCommand];
+}
+
+-(int) getSystemIdFromTalkId: (char) talkId
+{
+    switch (talkId) {
+        case 'P' :  return GNSSSYSTEMID_GPS;
+        case 'L' :  return GNSSSYSTEMID_GLONASS;
+        case 'A' :  return GNSSSYSTEMID_GALILEO;
+        case 'B' :  return GNSSSYSTEMID_BEIDOU;
+        case 'Q':   return GNSSSYSTEMID_QZSS;
+        case 'I':   return GNSSSYSTEMID_NAVIC;
+        default:    return GNSSSYSTEMID_UNKNOWN;
+    }
 }
 
 @end

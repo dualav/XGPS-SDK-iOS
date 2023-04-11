@@ -12,6 +12,9 @@
 
 @implementation Puck (XGPS500)
 
+NSTimer *ntripWriteTimer = NULL;
+//static NSMutableArray *ntripQueue = nil;
+
 -(void) handle500getSettingsRsp :(uint8_t*)Pkt :(uint8_t)PktLen
 {
     if (( PktLen - 2) < sizeof(xgps500data_t)) {
@@ -32,8 +35,7 @@
     else {
         self.loggingEnabled = NO;
     }
-    
-    //[CommonValue sharedSingleton].streamMode = data->streamMode;
+
     self.xgps500_streamMode = data->streamMode;
     
     self.logType = data->logType;
@@ -134,6 +136,8 @@ NSMutableString *mountListString = nil;
 void ntripMountPoints (void *self, char *buffer, int buffLen)
 {
     if (buffLen != 0 && mountListString != nil) {
+        if (strlen(buffer) > buffLen)
+            buffer[buffLen] = 0;
         NSString *mountpoint = [NSString stringWithUTF8String:buffer];
         if (mountpoint != nil)
             [mountListString appendString:[NSString stringWithUTF8String:buffer]];
@@ -142,7 +146,7 @@ void ntripMountPoints (void *self, char *buffer, int buffLen)
 //        NSLog(@"%@", mountListString);
         stop = 1;
         NSError *error = nil;
-        NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"STR;.+RTCM 2[.0-9]*;.+" options:NSRegularExpressionCaseInsensitive error:&error];
+        NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"STR;.+;.+" options:NSRegularExpressionCaseInsensitive error:&error];
         if (error != nil || mountListString == nil) {
             NSLog(@"fail to find regex");
         }
@@ -160,6 +164,9 @@ void ntripMountPoints (void *self, char *buffer, int buffLen)
                 NSArray *elements = [matchText componentsSeparatedByString:@";"];
                 if ([elements count] < 11)
                     continue;
+                if (![[elements objectAtIndex:3] isEqualToString:@"RTCM3"]) {
+                    continue;
+                }
                 float latitude = [[elements objectAtIndex:9] floatValue];
                 float longitude = [[elements objectAtIndex:10] floatValue];
                 float xgpsLatitude = [(__bridge id)self latitude];
@@ -173,7 +180,7 @@ void ntripMountPoints (void *self, char *buffer, int buffLen)
 //                    if (mountPoint != nil)
 //                        [(__bridge id)self setMountPoint:mountPoint];
                 }
-                [(__bridge id)self addMountPoint:[elements objectAtIndex:1]];
+                [(__bridge id)self addMountPoint:[elements objectAtIndex:1] :endLocation];
             }
             if (mountPoint.length > 0) {
                 [(__bridge id)self setMountPointName:mountPoint];
@@ -192,16 +199,32 @@ void ntripDataWrite (void *self, char *buffer, int buffLen, int error)
                        if (error == 0) {
                            [(__bridge id) self writeNtripData :(uint8_t*)buffer :buffLen];
                        }
-                       else {
+                       else if (error == 1) {
                            [(__bridge id) self alertErrorMessage :(uint8_t*)buffer :buffLen];
+                       } else if (error == 2) {
+                           [(__bridge id) self displayErrorMessage :(uint8_t*)buffer :buffLen];
                        }
                    });
 }
 
 - (void)writeNtripData:(const uint8_t *)buf : (uint32_t) bufLen {
-    [self getGGASentence];
+//    [self getGGASentence];
     self.ntripReceived += (long)bufLen;
-    [self writeBufferToStream:buf :bufLen];
+//    [self writeBufferToStream:buf :bufLen];
+    NSData *popData = [NSData dataWithBytes:buf length:bufLen];
+    [self.ntripQueue addObject:popData];
+}
+
+- (void)timerFired:(NSTimer *)timer {
+    // 100ms마다 버퍼에 쓰기
+    if ([self.ntripQueue count] > 0) {
+        NSLog(@"timerFired %ld", [self.ntripQueue count]);
+        NSData *popData = [self.ntripQueue objectAtIndex:0];
+        uint8_t *buf = (uint8_t *)[popData bytes];
+        uint32_t bufLen = (uint32_t)[popData length];
+        [self writeBufferToStream:buf :bufLen];
+        [self.ntripQueue removeObjectAtIndex:0];
+    }
 }
 
 - (void)alertErrorMessage:(const uint8_t *)buf :(uint32_t) bufLen {
@@ -210,13 +233,20 @@ void ntripDataWrite (void *self, char *buffer, int buffLen, int error)
     NSLog(@"alertErrorMessage : %@", self.ntripErrorMessage);
 }
 
-- (void)getGGASentence {
-    if (self.sentenceGGA == nil || self.sentenceGGA.length == 0)
-        return;
-    ggaSentence = (char *)[self.sentenceGGA UTF8String];
-//    NSLog(@"getGGA : %s", ggaSentence);
-    self.sentenceGGA = @"";
+- (void)displayErrorMessage:(const uint8_t *)buf :(uint32_t) bufLen {
+//    [CommonUtil ShowAlertWithYes:@"TITLE" message:@"Message" delegate:self tag:0];
+    self.ntripErrorMessage = [NSString stringWithUTF8String:(const char*)buf];
+    self.ntripReceived = 0;
+    NSLog(@"displayErrorMessage : %@", self.ntripErrorMessage);
 }
+
+//- (void)getGGASentence:(char *)sentence {
+//    if (self.sentenceGGA == nil || self.sentenceGGA.length == 0)
+//        return;
+//    ggaSentence = (char *)[self.sentenceGGA UTF8String];
+////    NSLog(@"getGGA : %s", ggaSentence);
+//    self.sentenceGGA = @"";
+//}
 
 - (void)setMountPointName:(NSString *)mountName {
     self.mountPoint = mountName;
@@ -233,20 +263,16 @@ void ntripDataWrite (void *self, char *buffer, int buffLen, int error)
 //    self.mountPoint = mountPoint;
 //}
 
-- (void)addMountPoint:(NSString *)mountPoint
+- (void)addMountPoint:(NSString *)mountPoint :(CLLocation *) location
 {
+    [self.mountPointDistList addObject:location];
     [self.mountPointList addObject:mountPoint];
 }
 
 - (void)startNtripNetwork:(NSString *)mountPoint 
 {
-    NSLog(@"startNtripNetwork with %@", mountPoint);
-    if (self.latitude == 0 && self.longitude == 0 && stop == 0) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-            [self startNtripNetwork:mountPoint];
-        });
-        return;
-    }
+    NSLog(@"startNtripNetwork with %@ %d", mountPoint, stop);
+
     stop = 0;
     NSString *server = [[NSUserDefaults standardUserDefaults] stringForKey:KEY_SERVER];
     NSString *port = [[NSUserDefaults standardUserDefaults] stringForKey:KEY_PORT];
@@ -259,29 +285,52 @@ void ntripDataWrite (void *self, char *buffer, int buffLen, int error)
         else
             [mountListString setString:@""];
         [self.mountPointList removeAllObjects];
+        [self.mountPointDistList removeAllObjects];
         self.mountPoint = @"";
         self.ntripErrorMessage = @"";
         self.ntripReceived = 0;
     }
     else {
-//        self.mountPoint = mountPoint;
+        self.mountPoint = mountPoint;
+//        if (ntripQueue == nil) {
+//            ntripQueue = [NSMutableArray array];
+//        }
+//        [self.mountPointList removeAllObjects];
+//        [self.mountPointDistList removeAllObjects];
+        ntripWriteTimer = [NSTimer scheduledTimerWithTimeInterval:0.1
+                                                          target:self
+                                                        selector:@selector(timerFired:)
+                                                        userInfo:nil
+                                                         repeats:YES];
     }
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0),
                    ^{
-                       self.isRunningNtrip = YES;
-                       [self getGGASentence];
-                       int result = ntripTest((__bridge void *)(self),
-                                 (char *)[server cStringUsingEncoding:NSUTF8StringEncoding],
-                                 (char *)[port cStringUsingEncoding:NSUTF8StringEncoding],
-                                 (char *)[user cStringUsingEncoding:NSUTF8StringEncoding],
-                                 (char *)[password cStringUsingEncoding:NSUTF8StringEncoding],
-                                 (mountPoint == NULL)?NULL:(char *)[mountPoint cStringUsingEncoding:NSUTF8StringEncoding],
-                                 (int)mode);
-                       NSLog(@"return ntripTest : %d", result);
-                       sigstop = 1;
-                       stop = 1;
-                       self.ntripReceived = 0;
-                       self.isRunningNtrip = NO;
+                       @try {
+                           self.isRunningNtrip = YES;
+//                           [self getGGASentence];
+                           int result = ntripTest((__bridge void *)(self),
+                                     (char *)[server cStringUsingEncoding:NSUTF8StringEncoding],
+                                     (char *)[port cStringUsingEncoding:NSUTF8StringEncoding],
+                                     (char *)[user cStringUsingEncoding:NSUTF8StringEncoding],
+                                     (char *)[password cStringUsingEncoding:NSUTF8StringEncoding],
+                                     (mountPoint == NULL)?NULL:(char *)[mountPoint cStringUsingEncoding:NSUTF8StringEncoding],
+                                     (int)mode);
+                           NSLog(@"return ntripTest : %d", result);
+                           sigstop = 1;
+                           stop = 1;
+                           self.ntripReceived = 0;
+                           self.isRunningNtrip = NO;
+                       }
+                       @catch(NSException * exception) {
+                           NSLog(@"catch ntripTest");
+                           NSLog(@"%@", exception.reason);
+                       }
+                       @catch( ... ) {
+                           NSLog(@"catch all ntripTest");
+                       }
+                       @finally {
+                           NSLog(@"Finally condition");
+                       }
                    });
 }
 
@@ -290,6 +339,7 @@ void ntripDataWrite (void *self, char *buffer, int buffLen, int error)
     stop = 1;
     self.ntripReceived = 0;
 //    self.mountPoint = @"";
+    [ntripWriteTimer invalidate];
 }
 
 @end

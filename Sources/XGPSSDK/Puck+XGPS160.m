@@ -86,7 +86,7 @@ bool update160command( uint8_t cmd, uint8_t* arg, uint16_t argLen )
         if( timeout == 3 || timeout == 6 ) {
             [streamOutput write: buf maxLength:size];
         }
-        [NSThread sleepForTimeInterval:(0.1)];
+        [NSThread sleepForTimeInterval:(0.2)];
         timeout--;
     }
     
@@ -258,7 +258,9 @@ bool recv_block( uint32_t blockNum, uint32_t dataSize )
     for( page=0; page < FW_PAGESPERBLOCK ; page++ )
     {
         //print("recv page %d / %d ", page + 1 + blockNum * FW_PAGESPERBLOCK, nFwPages);
-        
+        if (userCancel)
+            return FALSE;
+
         if( dataLeft > FW_PAGESIZE )
             bufLen = FW_PAGESIZE;
         else
@@ -321,7 +323,7 @@ bool recv_block( uint32_t blockNum, uint32_t dataSize )
 
 int updateRunning = 0;
 bool updateFail = false;
-
+bool userCancel = false;
 
 - (void) procFwUpdate:(void (^)(float percent))progressBlock
 {
@@ -347,7 +349,8 @@ bool updateFail = false;
     }
     
     updateRunning = TRUE;
-    
+    updateFail = false;// 20210401 jk -- app shows failure on success on next retry
+
     pFwReadBuf = (uint8_t*) malloc( nFwSize + FW_BLOCKSIZE );
     if( pFwReadBuf == NULL ) {
         NSLog(@"malloc() for read buffer failed");
@@ -367,6 +370,10 @@ bool updateFail = false;
         progressBlock(0);
     }
     
+    if( !update160command( cmd160_streamStop, NULL, 0 ) ) {
+        NSLog(@"fwPause error");
+    }
+
     do {
         
         // For each blocks (XGPS170 1KB block)
@@ -374,6 +381,7 @@ bool updateFail = false;
         NSLog(@"erasing");
         for( blk=0; blk < nFwBlocks && _session; blk++ )
         {
+            bFail = userCancel;
             retry = 5;
             do {
                 if( erase_block( blk ) ) {
@@ -400,12 +408,13 @@ bool updateFail = false;
         
         for( blk=0; blk < nFwBlocks; blk++ )
         {
+            bFail = userCancel;
             if( sizeLeft >= FW_BLOCKSIZE )
                 sizeWrite = FW_BLOCKSIZE;
             else
                 sizeWrite = sizeLeft;
             
-            retry = 1;//3
+            retry = 10;
             do {
                 // 1. Send firmware data
                 if( _session && send_block( blk, sizeWrite ) ) {
@@ -429,12 +438,16 @@ bool updateFail = false;
                         bFail = FALSE;
                         break;
                     }
+                    else {
+                        failCount++;
+                        NSLog(@"failCount: %d", failCount);
+                    }
                 }
                 else {
                     failCount++;
                 }
                 
-                if( !_session || failCount > 5) {
+                if( !_session || failCount > 5 || userCancel) {
                     bFail = TRUE;
                     break;
                 }
@@ -555,6 +568,12 @@ bool updateFail = false;
     return;
 }
 
+- (bool) fwupdateCancel
+{
+    // return true if the operation can be stopped, after stopping it
+    userCancel = true;
+    return false;
+}
 
 // 업뎃 종료시
 - (void)FwUpdateFinished
@@ -586,7 +605,8 @@ bool updateFail = false;
 {
     uint8_t *fwcode =  (uint8_t*) [firmwareData bytes];
     NSLog(@"fwupdateStart size=%d", fwsize);
-    
+    userCancel = FALSE;
+
     pSession = _session;
     
     if( !_session ) {
@@ -725,7 +745,8 @@ char* todStr( uint32_t tod )
         [logDic setObject: [NSString stringWithFormat:@"%s", dateStr(li.startDate)] forKey:@"startDate"];
         [logDic setObject: [NSString stringWithFormat:@"%s", todStr(li.startTod)] forKey:@"startTod"];
         [logDic setObject: [NSString stringWithFormat:@"%d", li.startBlock] forKey:@"startBlock"];
-        [logDic setObject: [NSString stringWithFormat:@"%d", li.countEntry] forKey:@"countEntry"];
+//        [logDic setObject: [NSString stringWithFormat:@"%d", li.countEntry] forKey:@"countEntry"];
+        [logDic setObject: [NSString stringWithFormat:@"%d", (li.countBlock * EntriesPerBlock)] forKey:@"countEntry"];
         [logDic setObject: [NSString stringWithFormat:@"%d", li.countBlock] forKey:@"countBlock"];
         [logDic setObject: [NSString stringWithFormat:@"%s  %s",dateStr(li.startDate),todStr(li.startTod)] forKey: TITLETEXT];
         
@@ -758,7 +779,6 @@ char* todStr( uint32_t tod )
         // 초기화
         logReadBulkCount = 0;
         logBulkRecodeCnt = 0;
-        [[CommonValue sharedSingleton] setLogBulkByteCnt:0];
         memset(logRecords, 0, 185 * 510);
     }
     else
@@ -775,7 +795,6 @@ char* todStr( uint32_t tod )
         if (self.tripLogDelegate != nil) {
             [self.tripLogDelegate logBulkProgress:logBulkRecodeCnt];
         }
-        [[CommonValue sharedSingleton] setLogBulkByteCnt:logBulkRecodeCnt];
     }
 
 }
@@ -919,7 +938,7 @@ static double getLatLon32bit( uint8_t* buf )
             [bulkDic setObject:[NSNumber numberWithDouble:fLat] forKey:@"lat"];
             [bulkDic setObject:[NSNumber numberWithDouble:fLon] forKey:@"long"];
             [bulkDic setObject:[NSNumber numberWithDouble:fAlt] forKey:@"alt"];
-            [bulkDic setObject:[NSString stringWithFormat:@"%s",todStr(tod)] forKey:@"utc"];
+            [bulkDic setObject:[NSString stringWithFormat:@"%s.%d",todStr(tod), tod10th] forKey:@"utc"];
             [bulkDic setObject:[NSNumber numberWithInteger:tod] forKey:@"tod"];
             [bulkDic setObject:[NSString stringWithFormat:@"%d",spd] forKey:@"spd"];
             [bulkDic setObject:[NSNumber numberWithInteger:heading] forKey:@"heading"];

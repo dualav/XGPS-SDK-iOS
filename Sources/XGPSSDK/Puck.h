@@ -27,7 +27,6 @@
 
 #import "Common.h"
 #import "CommonUtil.h"
-#import "CommonValue.h"
 
 #import "TripLog.h"
 
@@ -65,7 +64,8 @@
     NSMutableString	*serialNumber;              // Unique ID of the puck, e.g. XGPS150-28645E
     NSString	*firmwareRev;               // Firmware version in the puck, e.g. 1.0.23
     NSString *modelNumber;                      // model number
-    
+    enum GPS_MODULE gpsModule;
+
     // This is the raw GPS data available from the XGPS150
 //	NSNumber	*alt;                       // Altitude in meters
 	NSMutableString	*utc;                       // UTC time of latest position sample
@@ -98,11 +98,14 @@
                                             // is being used in position calculations - all NSNumber types. The keys to the dictionary
                                             // are the satellite numbers - also NSNumber types. This dictionary is set by the
                                             // parseGPS method.
+    NSMutableArray *satellitesUsedArray;     // An array for satsUsedInPosCalc by systemId
+    NSMutableArray *satellitesInfoArray;     // 2 demension array
 	CLLocationCoordinate2D	coordinates;	// The puck's location, calculated by a class method
     
 }
 @property (nonatomic, retain) NSMutableArray* logBulkDic;
 @property (nonatomic, retain) NSMutableArray* logListData;
+@property (nonatomic, weak) NSMutableArray* ntripQueue;
 
 @property bool notificationType;    // true = connect. false = disconnect
 //@property (nonatomic, readonly) EAAccessory *accessory;
@@ -113,21 +116,22 @@
 @property bool isDGPS;
 @property bool isRunningNtrip;
 @property float batteryVoltage;
+@property enum GPS_MODULE gpsModule;
 @property (nonatomic, retain) NSMutableString *serialNumber;
 @property (nonatomic, retain) NSString *firmwareRev;
 @property (nonatomic, retain) NSString *modelNumber;
 @property (nonatomic, retain) NSString *mountPoint;
 @property (nonatomic, retain) NSString *ntripErrorMessage;
 @property (nonatomic, retain) NSMutableArray *mountPointList;
-@property (nonatomic, assign) float latitude;
-@property (nonatomic, assign) float longitude;
+@property (nonatomic, retain) NSMutableArray *mountPointDistList;
+@property (nonatomic, assign) double latitude;
+@property (nonatomic, assign) double longitude;
 @property (nonatomic, assign) float alt;
 @property (nonatomic, retain) NSMutableString *utc;
 @property (nonatomic, assign) int fixType;
 @property (nonatomic, assign) int numOfSatInUse;
 @property (nonatomic, assign) int numOfSatInView;
 @property (nonatomic, assign) int numOfSatInUseGlonass;
-@property (nonatomic, assign) int numOfSatInViewGlonass;
 @property (nonatomic, assign) float hdop;
 @property (nonatomic, assign) float vdop;
 @property (nonatomic, assign) float pdop;
@@ -141,8 +145,12 @@
 @property (nonatomic, retain) NSMutableArray *lonDegMinDir;
 @property (nonatomic, retain) NSMutableArray *satsUsedInPosCalc;
 @property (nonatomic, retain) NSMutableArray *satsUsedInPosCalcGlonass;
+
 @property (nonatomic, retain) NSMutableDictionary *dictOfSatInfo;
 @property (nonatomic, retain) NSMutableDictionary *dictOfSatInfoGlonass;
+@property (nonatomic, retain) NSMutableArray *satellitesUsedArray;
+@property (nonatomic, retain) NSMutableArray *satellitesInfoArray;
+
 @property (nonatomic, readwrite) CLLocationCoordinate2D coordinates;
 @property(nonatomic, assign) id <TripLogDelegate> tripLogDelegate;
 
@@ -186,6 +194,7 @@
 -(void) setRefreshRate:(int)value;
 -(void) getSettingValue;
 -(void) setShortNMEA:(bool)ShortNMEA;
+-(int) getSystemIdFromTalkId: (char) talkId;
 
 //
 // LOG Access
@@ -207,8 +216,6 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
 - (void)startNtripNetwork:(NSString *)mountPoint;
 - (void)stopNtripNetwork;
 - (void)addMountPoint:(NSString *)mountPoint;
-//- (void)setMountPoint:(NSString *)mountPoint;
-@property (nonatomic, retain) NSString *sentenceGGA;
 @property long ntripReceived;
 
 @end

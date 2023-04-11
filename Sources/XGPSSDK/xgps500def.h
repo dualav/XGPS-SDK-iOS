@@ -8,9 +8,7 @@
 
 #ifndef xgps500def_h
 #define xgps500def_h
-#include <stdint.h>
-#include <stdbool.h>
-#include "xgps160def.h"
+
 
 
 typedef struct {
@@ -90,5 +88,11 @@ enum {
     LogType_RTK = 4,
 };
 
+typedef struct {
+    double    latitude;
+    double    longitude;
+    uint32_t    timestamp;
+    double    distance;
+} deviation_t ;
 
 #endif /* xgps500def_h */
