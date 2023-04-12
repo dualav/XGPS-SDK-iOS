@@ -199,7 +199,7 @@ NSTimer *timeoutTimer = nil;
 {
     if ((self = [super init]))
     {
-        delegate = (AppDelegate*) [[UIApplication sharedApplication] delegate];
+//        delegate = (AppDelegate*) [[UIApplication sharedApplication] delegate];
         self.logBulkDic = [[NSMutableArray alloc]init];
         logBulkRecodeCnt = 0;
         self.logListData = [[NSMutableArray alloc]init];
@@ -1084,15 +1084,18 @@ bool NMEAVerifyChecksum( const char* data, int dataLen )
         if (systemId < 1) {
             systemId = 1;
         }
+        
         // 위성 감도 평균값
         NSString *satInDOP;
         NSMutableArray *satsInDOPCalc = [[NSMutableArray alloc] init];
+        self.waasInUse = NO;
         for (int i=3; i<15; i++)
         {
             satInDOP = [elementsInSentence objectAtIndex:i];
 
             if ([satInDOP length] > 0)
                 [satsInDOPCalc addObject:satInDOP];
+            if ([satInDOP intValue] > 32) self.waasInUse = YES;
             satInDOP = nil;
         }
         self.satellitesUsedArray[systemId-1] = satsInDOPCalc;

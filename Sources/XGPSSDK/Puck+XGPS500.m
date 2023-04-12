@@ -228,13 +228,11 @@ void ntripDataWrite (void *self, char *buffer, int buffLen, int error)
 }
 
 - (void)alertErrorMessage:(const uint8_t *)buf :(uint32_t) bufLen {
-//    [CommonUtil ShowAlertWithYes:@"TITLE" message:@"Message" delegate:self tag:0];
     self.ntripErrorMessage = [NSString stringWithUTF8String:(const char*)buf];
     NSLog(@"alertErrorMessage : %@", self.ntripErrorMessage);
 }
 
 - (void)displayErrorMessage:(const uint8_t *)buf :(uint32_t) bufLen {
-//    [CommonUtil ShowAlertWithYes:@"TITLE" message:@"Message" delegate:self tag:0];
     self.ntripErrorMessage = [NSString stringWithUTF8String:(const char*)buf];
     self.ntripReceived = 0;
     NSLog(@"displayErrorMessage : %@", self.ntripErrorMessage);

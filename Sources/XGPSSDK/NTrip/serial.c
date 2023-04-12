@@ -178,7 +178,7 @@ __attribute__((__unused__))
 
 static int SerialRead(struct serial *sn, char *buffer, size_t size)
 {
-  int j = read(sn->Stream, buffer, size);
+  int j = (int)read(sn->Stream, buffer, size);
   if(j < 0)
   {
     if(errno == EAGAIN)
@@ -191,7 +191,7 @@ static int SerialRead(struct serial *sn, char *buffer, size_t size)
 
 static int SerialWrite(struct serial *sn, const char *buffer, size_t size)
 {
-  int j = write(sn->Stream, buffer, size);
+  int j = (int)write(sn->Stream, buffer, size);
   if(j < 0)
   {
     if(errno == EAGAIN)

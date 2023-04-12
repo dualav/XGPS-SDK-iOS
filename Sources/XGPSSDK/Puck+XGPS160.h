@@ -38,6 +38,17 @@
 //-(BOOL) update160command:(int) cmd :(BYTE*) buf :(UINT) bufLen;
 
 
+//
+// OTA Firmware Update
+//
+- (bool) fwupdateNeeded;
+- (bool) fwupdateStart:(NSMutableData*)firmwareData fileSize:(int)fwsize progress:(void (^)(float percent))progressBlock;
+- (bool) fwupdateCancel;
+
+//
+// LOG Access
+//
+-(void) cancelLoading:(int)whatCancel;
 
 @end
 

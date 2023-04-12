@@ -81,7 +81,6 @@ x = nil; \
 
 #define ColorWithRGBA(r,g,b,a)          [UIColor colorWithRed:floatColorValue(r) green:floatColorValue(g) blue:floatColorValue(b) alpha:a]
 #define ColorWithRGB(r,g,b)             ColorWithRGBA(r,g,b,1)
-#define GetImageWithName(x)             [CommonUtil getImageWithName:x]
 #define GetSessionManaer(x)             [SessionManager sharedInstance:x]
 #define GetDataManager(x)               [DataManager sharedInstance:x]
 #define GetVersionManager(x)            [VersionManager sharedInstance:x]

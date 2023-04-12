@@ -486,7 +486,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
             {
                 int p;
                 if((i = strtol(args.port, &b, 10)) && (!b || !*b))
-                    p = i;
+                    p = (int)i;
                 else if(!(se = getservbyname(args.port, 0)))
                 {
                     fprintf(stderr, "Can't resolve port %s.", args.port);
@@ -553,7 +553,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                     char rtpbuf[1526];
                     int i=12, j;
                     
-                    init = time(0);
+                    init = (int)time(0);
                     srand(init);
                     session = rand();
                     tim = rand();
@@ -638,7 +638,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                             }
                             else
                             {
-                                if((numbytes=recv(sockfd, rtpbuf, sizeof(rtpbuf)-1, 0)) > 0)
+                                if((numbytes=(int)recv(sockfd, rtpbuf, sizeof(rtpbuf)-1, 0)) > 0)
                                 {
                                     int sn = 0x10000, ts=0;
                                     /* we don't expect message longer than 1513, so we cut the last
@@ -655,7 +655,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                         const char *httpresponseend = "\r\n\r\n";
                                         int contentlength = 0, httpresponselength = 0;
                                         /* datacheck */
-                                        int l = strlen(datacheck)-1;
+                                        int l = (int)strlen(datacheck)-1;
                                         int j=0;
                                         for(i = 12; j != l && i < numbytes-l; ++i)
                                         {
@@ -665,7 +665,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                         if(i != numbytes-l)
                                         {
                                             /* check for Session */
-                                            l = strlen(sessioncheck)-1;
+                                            l = (int)strlen(sessioncheck)-1;
                                             j=0;
                                             for(i = 12; j != l && i < numbytes-l; ++i)
                                             {
@@ -688,7 +688,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                         else
                                         {
                                             /* sourcetablecheck */
-                                            l = strlen(sourcetablecheck)-1;
+                                            l = (int)strlen(sourcetablecheck)-1;
                                             j=0;
                                             for(i = 12; j != l && i < numbytes-l; ++i)
                                             {
@@ -704,7 +704,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                             else
                                             {
                                                 /* check for http response end */
-                                                l = strlen(httpresponseend)-1;
+                                                l = (int)strlen(httpresponseend)-1;
                                                 j=0;
                                                 for(i = 12; j != l && i < numbytes-l; ++i)
                                                 {
@@ -716,7 +716,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                                     httpresponselength = i+3-12;
                                                 }
                                                 /* check for content length */
-                                                l = strlen(contentlengthcheck)-1;
+                                                l = (int)strlen(contentlengthcheck)-1;
                                                 j=0;
                                                 for(i = 12; j != l && i < numbytes-l; ++i)
                                                 {
@@ -741,7 +741,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                                             }
                                                             else
                                                             {
-                                                                numbytes = recv(sockfd, rtpbuf, sizeof(rtpbuf), 0);
+                                                                numbytes = (int)recv(sockfd, rtpbuf, sizeof(rtpbuf), 0);
                                                             }
                                                         }while((numbytes >12) && (!stop));
                                                     }
@@ -781,7 +781,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                             error = 1;
                                             continue;
                                         }
-                                        i = recv(sockfd, rtpbuf, sizeof(rtpbuf), 0);
+                                        i = (int)recv(sockfd, rtpbuf, sizeof(rtpbuf), 0);
 #ifndef WINDOWSVERSION
 //                                        alarm(ALARMTIME);
 #endif
@@ -840,7 +840,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                                 rtpbuf[10] = (session>>8)&0xFF;
                                                 rtpbuf[11] = (session)&0xFF;
                                                 ++seq;
-                                                init = ct;
+                                                init = (int)ct;
                                                 
                                                 if(send(sockfd, rtpbuf, 12, 0) != 12)
                                                 {
@@ -940,7 +940,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                             fprintf(stderr, "Requested data too long\n");
                             stop = 1;
                         }
-                        i += encode(buf+i, MAXDATASIZE-i-4, args.user, args.password);
+                        i += encode(buf+i, MAXDATASIZE-(int)i-4, args.user, args.password);
                         if(i > MAXDATASIZE-4)
                         {
                             fprintf(stderr, "Username and/or password too long\n");
@@ -958,7 +958,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                             myperror("send");
                             error = 1;
                         }
-                        else if((numbytes=recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1)
+                        else if((numbytes=(int)recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1)
                         {
                             myperror("recv");
                             error = 1;
@@ -968,7 +968,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                             int serverport = 0, session = 0;
                             const char *portcheck = "server_port=";
                             const char *sessioncheck = "session: ";
-                            int l = strlen(portcheck)-1;
+                            int l = (int)strlen(portcheck)-1;
                             int j=0;
                             for(i = 0; j != l && i < numbytes-l; ++i)
                             {
@@ -993,7 +993,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                             }
                             if(!stop && !error)
                             {
-                                l = strlen(sessioncheck)-1;
+                                l = (int)strlen(sessioncheck)-1;
                                 j=0;
                                 for(i = 0; j != l && i < numbytes-l; ++i)
                                 {
@@ -1044,7 +1044,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                 casterRTP.sin_port   = htons(serverport);
                                 casterRTP.sin_addr   = *((struct in_addr *)he->h_addr);
                                 
-                                if((i = sendto(sockudp, rtpbuffer, 12, 0,
+                                if((i = (int)sendto(sockudp, rtpbuffer, 12, 0,
                                                (struct sockaddr *) &casterRTP, sizeof(casterRTP))) != 12)
                                     myperror("WARNING: could not send initial UDP packet");
                             }
@@ -1068,7 +1068,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                     myperror("send");
                                     error = 1;
                                 }
-                                else if((numbytes=recv(sockfd, buf, MAXDATASIZE-1, 0)) != -1)
+                                else if((numbytes=(int)recv(sockfd, buf, MAXDATASIZE-1, 0)) != -1)
                                 {
                                     if(numbytes >= 17 && !strncmp(buf, "RTSP/1.0 200 OK\r\n", 17))
                                     {
@@ -1176,7 +1176,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                                 continue;
                                             }
                                             /* ignore RTSP server replies */
-                                            if((r=recv(sockfd, buf, MAXDATASIZE-1, 0)) < 0)
+                                            if((r=(int)recv(sockfd, buf, MAXDATASIZE-1, 0)) < 0)
                                             {
 #ifdef WINDOWSVERSION
                                                 if(WSAGetLastError() != WSAEWOULDBLOCK)
@@ -1278,7 +1278,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                             }
                             else
                             {
-                                i += encode(buf+i, MAXDATASIZE-i-4, args.user, args.password);
+                                i += encode(buf+i, MAXDATASIZE-(int)i-4, args.user, args.password);
                                 if(i > MAXDATASIZE-4)
                                 {
                                     fprintf(stderr, "Username and/or password too long\n");
@@ -1317,13 +1317,13 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                         {
                             int k = 0;
                             int chunkymode = 0;
-                            int starttime = time(0);
+                            int starttime = (int)time(0);
                             int lastout = starttime;
                             int totalbytes = 0;
                             int chunksize = 0;
                             
                             while(!stop && !error &&
-                                  (numbytes=recv(sockfd, buf, MAXRECEIVESIZE-1, 0)) > 0)
+                                  (numbytes=(int)recv(sockfd, buf, MAXRECEIVESIZE-1, 0)) > 0)
                             {
 #ifndef WINDOWSVERSION
 //                                alarm(ALARMTIME);
@@ -1337,7 +1337,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                     {
                                         const char *datacheck = "Content-Type: gnss/data\r\n";
                                         const char *chunkycheck = "Transfer-Encoding: chunked\r\n";
-                                        int l = strlen(datacheck)-1;
+                                        int l = (int)strlen(datacheck)-1;
                                         int j=0;
                                         for(i = 0; j != l && i < numbytes-l; ++i)
                                         {
@@ -1349,7 +1349,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                             fprintf(stderr, "No 'Content-Type: gnss/data' found\n");
                                             error = 1;
                                         }
-                                        l = strlen(chunkycheck)-1;
+                                        l = (int)strlen(chunkycheck)-1;
                                         j=0;
                                         for(i = 0; j != l && i < numbytes-l; ++i)
                                         {
@@ -1395,9 +1395,9 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                                     ++chunkymode; /* no break */
                                                 case 2: /* during reading number */
                                                     i = buf[pos++];
-                                                    if(i >= '0' && i <= '9') chunksize = chunksize*16+i-'0';
-                                                    else if(i >= 'a' && i <= 'f') chunksize = chunksize*16+i-'a'+10;
-                                                    else if(i >= 'A' && i <= 'F') chunksize = chunksize*16+i-'A'+10;
+                                                    if(i >= '0' && i <= '9') chunksize = chunksize*16+(int)i-'0';
+                                                    else if(i >= 'a' && i <= 'f') chunksize = chunksize*16+(int)i-'a'+10;
+                                                    else if(i >= 'A' && i <= 'F') chunksize = chunksize*16+(int)i-'A'+10;
                                                     else if(i == '\r') ++chunkymode;
                                                     else if(i == ';') chunkymode = 5;
                                                     else cstop = 1;
@@ -1470,7 +1470,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                     if(totalbytes < 0) /* overflow */
                                     {
                                         totalbytes = 0;
-                                        starttime = time(0);
+                                        starttime = (int)time(0);
                                         lastout = starttime;
                                     }
                                     if(!stop && strlen(ggaSentence) > 0 && strlen(ggaSentence) < 200)
@@ -1550,7 +1550,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                                     }
                                     if(args.bitrate)
                                     {
-                                        int t = time(0);
+                                        int t = (int)time(0);
                                         if(t > lastout + 60)
                                         {
                                             lastout = t;
@@ -1566,7 +1566,7 @@ int ntripTest(void *object, char *server, char *port, char *user, char *pw, char
                         else
                         {
                             sleeptime = 0;
-                            while(!stop && (numbytes=recv(sockfd, buf, MAXDATASIZE-1, 0)) > 0)
+                            while(!stop && (numbytes=(int)recv(sockfd, buf, MAXDATASIZE-1, 0)) > 0)
                             {
 #ifndef WINDOWSVERSION
 //                                alarm(ALARMTIME);

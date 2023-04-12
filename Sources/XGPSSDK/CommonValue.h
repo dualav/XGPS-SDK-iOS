@@ -16,8 +16,8 @@
 @property(nonatomic, assign) int  formatAltitude;     // 0=feet, 1=meter
 @property(nonatomic, assign) int  formatPosition;     // 0=Deg.Min.Sec, 1=Deg,Min.Fraction, 2=Deg.Fraction
 
-@property(nonatomic, assign) NSMutableArray * didSelectLogList;
-@property(nonatomic, assign) NSMutableDictionary * didSelectLogListBulkData;
+@property(nonatomic, retain) NSMutableArray * didSelectLogList;
+@property(nonatomic, retain) NSMutableDictionary * didSelectLogListBulkData;
 
 //  상세 클릭할때
 @property(nonatomic, assign) int isLogDetailIndex;

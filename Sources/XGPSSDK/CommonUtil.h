@@ -8,55 +8,8 @@
 
 
 #import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
 
 @interface CommonUtil : NSObject
-
-
-
-/*
- * OK 버튼만 있는 알림 창
- */
-+ (void) ShowAlertWithOk:(NSString *)title message:(NSString *)message delegate:(id)delegate;
-
-/*
- * Cancel 버튼만 있는 알림 창
- */
-+ (void) ShowAlertWithCancel:(NSString *)title message:(NSString *)message delegate:(id)delegate;
-
-/*
- * OK-CANCEL 버튼 있는 알림 창
- */
-+ (void) ShowAlertWithOkCancel:(NSString *)title message:(NSString *)message delegate:(id)delegate tag:(NSInteger)tag;
-+ (void) ShowAlertWithOkCancel:(UIAlertViewStyle)style title:(NSString *)title
-                       message:(NSString *)message delegate:(id)delegate tag:(NSInteger)tag;
-
-/*
- * YES 버튼만 있는 알림 창
- */
-+ (void) ShowAlertWithYes:(NSString *)title message:(NSString *)message delegate:(id)delegate tag:(NSInteger)tag;
-
-/*
- * YES-NO 버튼 있는 알림 창
- */
-+ (void) ShowAlertWithYesNo:(NSString *)title message:(NSString *)message delegate:(id)delegate tag:(NSInteger)tag;
-
-/*
- * 사용자 정의 알림 창
- */
-+ (void) ShowAlert:(NSString *)title message:(NSString *)message delegate:(id)delegate tag:(NSInteger)tag
- cancelButtonTitle:(NSString *)cancelButtonTitle otherButtonTitles:(NSString *)otherButtonTitles, ...;
-
-+ (void) ShowAlertWithBtnOne:(NSString *)title message:(NSString *)message delegate:(id)delegate b1Str:(NSString *)b1Str tag:(int)tag;
-
-+ (void) ShowAlertWithBtnTwo:(NSString *)title message:(NSString *)message delegate:(id)delegate b1Str:(NSString *)b1Str b2Str:(NSString *)b2Str tag:(int)tag;
-
-#pragma mark - 버튼 이미지 및 텍스트 색 설정
-#pragma mark - 이미지 가져오는 함수
-
-+ (UIImage *) getImageWithName:(NSString *)name;
-+ (UIImage *) getImageWithFile:(NSString *)path;
-
 
 #pragma mark - 파일 관련 래퍼 함수
 /*

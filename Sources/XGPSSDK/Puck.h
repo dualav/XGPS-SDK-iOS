@@ -19,7 +19,6 @@
 
 
 #ifdef __OBJC__
-#import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #endif
 #import <CoreLocation/CoreLocation.h>       // only used for the CLLocationCoordinate2D data structure. Location manager is not used.
@@ -39,7 +38,7 @@
 
 @interface Puck : NSObject <EAAccessoryDelegate, NSStreamDelegate, TripLogDelegate>
 {
-    AppDelegate *delegate;
+//    AppDelegate *delegate;
     FILE*	fileLogExport;
     
     //++ XGPS160 only
@@ -63,7 +62,6 @@
 	float       batteryVoltage;             // Value between 0.0 (0%) and 1.0 (100%) representing the level of the puck's battery
     NSMutableString	*serialNumber;              // Unique ID of the puck, e.g. XGPS150-28645E
     NSString	*firmwareRev;               // Firmware version in the puck, e.g. 1.0.23
-    NSString *modelNumber;                      // model number
     enum GPS_MODULE gpsModule;
 
     // This is the raw GPS data available from the XGPS150
@@ -105,7 +103,7 @@
 }
 @property (nonatomic, retain) NSMutableArray* logBulkDic;
 @property (nonatomic, retain) NSMutableArray* logListData;
-@property (nonatomic, weak) NSMutableArray* ntripQueue;
+@property (nonatomic, retain) NSMutableArray* ntripQueue;
 
 @property bool notificationType;    // true = connect. false = disconnect
 //@property (nonatomic, readonly) EAAccessory *accessory;
@@ -197,25 +195,13 @@
 -(int) getSystemIdFromTalkId: (char) talkId;
 
 //
-// LOG Access
-//
--(void) cancelLoading:(int)whatCancel;
-
-//
-// OTA Firmware Update
-//
-- (bool) fwupdateNeeded;
-- (bool) fwupdateStart:(NSMutableData*)firmwareData fileSize:(int)fwsize progress:(void (^)(float percent))progressBlock;
-- (bool) fwupdateCancel;
-
-//
 // RTCM Feed into XGPS500
 //
 //int ntripTest(char **buf, int *bufSize);
 int ntripTest(void *object, char *server, char *port, char *user, char *pw, char *mount, int mode);
 - (void)startNtripNetwork:(NSString *)mountPoint;
 - (void)stopNtripNetwork;
-- (void)addMountPoint:(NSString *)mountPoint;
+- (void)addMountPoint:(NSString *)mountPoint :(CLLocation *) location;
 @property long ntripReceived;
 
 @end

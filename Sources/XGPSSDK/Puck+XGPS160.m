@@ -576,7 +576,7 @@ bool userCancel = false;
 }
 
 // 업뎃 종료시
-- (void)FwUpdateFinished
+- (bool)FwUpdateFinished
 {
     NSLog(@"FwUpdateFinished");
     
@@ -594,10 +594,11 @@ bool userCancel = false;
     // 업데이트가 끝나면 연결 대기 상태로..
     // 업데이트가 성공했을때만 성공 알림창으로... 아니라면 실패 알림 창으로
     if (updateFail) {
-        [CommonUtil ShowAlertWithOk:@"SkyPro GPS" message:@"\nUpdate failure. \n\nPlease, try again after turning SkyPro GPS off and on" delegate:nil];
+        return false;
     }
-    else
-        [CommonUtil ShowAlertWithOk:@"SkyPro GPS" message:@"\nUpdate complete.\n\nXGPS160 will disconnect. After forgetting the device in the bluetooth paired lists in the iOS device, pair it again.\n\nYou may need to reboot this App." delegate:self];
+    else {
+        return true;
+    }
     
 }
 
