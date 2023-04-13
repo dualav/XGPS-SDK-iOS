@@ -1,11 +1,30 @@
 # XGPS-SDK-iOS
 
-![](https://img.shields.io/badge/language-swift3-orange.svg?style=flat)
-![](https://img.shields.io/badge/sdk-objectiveC-orange.svg?style=flat)
-![Platform](https://img.shields.io/cocoapods/p/LFAlertController.svg?style=flat)
-![](https://img.shields.io/badge/version-2.2-blue.svg?style=flat)
+![](https://img.shields.io/badge/Swift-4.0_5.0-orange.svg?style=flat)
+![](https://img.shields.io/badge/sdk-Swift_ObjectiveC-orange.svg?style=flat)
+![](https://img.shields.io/badge/Platforms-iOS-Green?style=flat-square)
+![](https://img.shields.io/badge/Swift_Package_Manager-compatible-orange?style=flat-square)
 
 This project provides the source code and example code that XGPS150/XGPS160 exchanges data with iPhone device via Bluetooth connection.
+
+
+## Installation
+
+#### 1. File > Add Package 
+![](https://user-images.githubusercontent.com/33018203/231606594-dca26a40-25d1-440a-a32e-424ee9a8c7c8.png)
+
+#### 2. Find 'xgps' and click 'Add Package'
+![](https://user-images.githubusercontent.com/33018203/231606598-30478a64-6f16-4e0a-b40b-0b4e4be3f7d0.png)
+
+#### 3. Select XGPSSDK module. (If you Swift language, also select XGPSSDKSwift)
+![](https://user-images.githubusercontent.com/33018203/231606601-c95793a5-787a-4a12-a474-11ddda49772c.png)
+
+#### 4. Add 'Supported external accessory protocols' key in your target.
+![](https://user-images.githubusercontent.com/33018203/231606602-61512a21-a92b-4bca-8273-6d1aee911b8a.png)
+
+#### 5. Click the triangle of this key and set the value for the “Item 0” to 'com.dualav.xgps150'.
+![](https://user-images.githubusercontent.com/33018203/231606604-342625c8-031b-43a8-8eb7-3eea232787f4.png)
+
 
 ## Usage
 
