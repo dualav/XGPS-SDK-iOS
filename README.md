@@ -5,7 +5,7 @@
 ![](https://img.shields.io/badge/Platforms-iOS-Green?style=flat-square)
 ![](https://img.shields.io/badge/Swift_Package_Manager-compatible-orange?style=flat-square)
 
-This project provides the source code and example code that XGPS150/XGPS160 exchanges data with iPhone device via Bluetooth connection.
+This project provides the source code and example code that XGPS150/XGPS160/DashPro exchanges data with iPhone device via Bluetooth connection.
 
 
 ## Installation
